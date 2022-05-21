@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>317</height>
+    <height>365</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -26,19 +26,6 @@
       </property>
      </widget>
     </item>
-    <item row="12" column="1" colspan="2">
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
-    </item>
     <item row="2" column="3">
      <widget class="QPushButton" name="btn_browse_modpack">
       <property name="sizePolicy">
@@ -49,13 +36,6 @@
       </property>
       <property name="text">
        <string>Browse</string>
-      </property>
-     </widget>
-    </item>
-    <item row="10" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_modloader">
-      <property name="readOnly">
-       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -103,20 +83,6 @@
       </property>
      </widget>
     </item>
-    <item row="8" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_mc_version">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="11" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_nummods">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
     <item row="7" column="0">
      <widget class="QLabel" name="label_3">
       <property name="sizePolicy">
@@ -127,6 +93,69 @@
       </property>
       <property name="text">
        <string>Modpack Name</string>
+      </property>
+     </widget>
+    </item>
+    <item row="11" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_nummods">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="15" column="0" colspan="4">
+     <widget class="QPushButton" name="btn_generate">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Download Mods and Generate Zip</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0">
+     <widget class="QLabel" name="label_6">
+      <property name="text">
+       <string>Minecraft Version</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1" colspan="2">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
+    </item>
+    <item row="10" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_modloader">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_mc_version">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QLabel" name="label_8">
+      <property name="font">
+       <font>
+        <bold>false</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Download Using</string>
       </property>
      </widget>
     </item>
@@ -155,35 +184,6 @@
       </property>
      </widget>
     </item>
-    <item row="14" column="0" colspan="4">
-     <widget class="QPushButton" name="btn_generate">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="text">
-       <string>Download Mods and Generate Zip</string>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="0">
-     <widget class="QLabel" name="label_6">
-      <property name="text">
-       <string>Minecraft Version</string>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="0">
-     <widget class="QLabel" name="label_8">
-      <property name="font">
-       <font>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Download Using</string>
-      </property>
-     </widget>
-    </item>
     <item row="3" column="1" colspan="3">
      <widget class="QComboBox" name="cbox_browser">
       <item>
@@ -196,6 +196,25 @@
         <string>firefox</string>
        </property>
       </item>
+     </widget>
+    </item>
+    <item row="14" column="0" colspan="4">
+     <widget class="QLabel" name="label_9">
+      <property name="font">
+       <font>
+        <italic>true</italic>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>WARNING: Tabs may open and change rapidly causing significant flashing. Those sensative to such things may wish to avoid this tool.</string>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
      </widget>
     </item>
    </layout>

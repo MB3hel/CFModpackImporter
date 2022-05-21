@@ -1,5 +1,6 @@
 
 import json
+from logging import root
 import os
 import shutil
 import tempfile
@@ -135,8 +136,8 @@ class ImporterWindow(QMainWindow):
         self.pdialog.setLabelText(label)
 
     def generate(self):
-        filename = QFileDialog.getSaveFileName(self, "Generated File Name", "modpack_add_to_instance.zip", ".zip")
-        if filename == "" or filename is None:
+        filename = QFileDialog.getSaveFileName(self, "Generated File Name", "modpack_add_to_instance.zip", ".zip")[0]
+        if filename == "":
             return
 
         task = Task(self, self.do_generate, filename)
@@ -151,6 +152,7 @@ class ImporterWindow(QMainWindow):
         self.pdialog.hide()
 
     def generate_exec(self, e):
+        traceback.print_tb(e.__traceback__)
         dialog = QMessageBox(parent=self)
         dialog.setIcon(QMessageBox.Warning)
         dialog.setText("{0}: {1}".format(type(e).__name__, str(e)))
@@ -168,6 +170,7 @@ class ImporterWindow(QMainWindow):
             startupinfo = None
 
         with tempfile.TemporaryDirectory() as tempdir:
+            print("Working generation directory: {0}".format(tempdir))
             # Download required tools
             self.update_progress.emit("Downloading CFModDownloader...")
             if platform.system() == "Windows":
@@ -202,7 +205,6 @@ class ImporterWindow(QMainWindow):
                 if rc != 0:
                     raise Exception("Parsing modpack failed.")
             except Exception as e:
-                traceback.print_exc()
                 raise e
 
             # Run cfmdown
@@ -214,13 +216,14 @@ class ImporterWindow(QMainWindow):
                 if rc != 0:
                     raise Exception("Parsing modpack failed.")
             except Exception as e:
-                traceback.print_exc()
                 raise e
 
             # Extract modpack overrides
             self.update_progress.emit("Extracting modpack overrides...")
             with zipfile.ZipFile(mpfile, "r") as zf:
-                zf.extract('overrides', tempdir)
+                zf.extractall(os.path.join(tempdir, "modpack_extracted"))
+            shutil.move(os.path.join(tempdir, "modpack_extracted", "overrides"), os.path.join(tempdir, "overrides"))
+            shutil.rmtree(os.path.join(tempdir, "modpack_extracted"))
 
             # Copy mods to overrides
             self.update_progress.emit("Adding downloaded mods...")
@@ -230,9 +233,9 @@ class ImporterWindow(QMainWindow):
             # Zip contents of overrides folder
             self.update_progress.emit("Zipping generated files...")
             oldwd = os.getcwd()
-            os.chdir(os.path.join(tempdir, "overrides"))
+            os.chdir(os.path.join(tempdir))
             try:
-                archive = shutil.make_archive(os.path.basename(filename)[:-4])
+                archive = shutil.make_archive(os.path.basename(filename)[:-4], format="zip", root_dir="overrides", base_dir="overrides")
                 shutil.move(archive, filename)
                 os.chdir(oldwd)
             except Exception as e:
