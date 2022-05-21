@@ -32,6 +32,8 @@ from logging import root
 import os
 import shutil
 import tempfile
+import sys
+import time
 import traceback
 import requests
 import platform
@@ -41,6 +43,7 @@ from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QF
 from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog
 from PySide6.QtGui import QCloseEvent
 from instructionsdialog import InstructionsDialog
+from logwindow import LogWindow
 from ui_importer import Ui_Importer
 from aboutdialog import AboutDialog
 import subprocess
@@ -81,12 +84,13 @@ class Task(QRunnable, QObject):
 class ImporterWindow(QMainWindow):
     update_progress = Signal(str)
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, logwindow: LogWindow, parent: Optional[QWidget] = None):
         super().__init__(parent)
-        
+
         # Non-UI variables
         self.manifest_json = None
         self.tasks = []
+        self.logwindow = logwindow
 
         # Setup UI
         self.ui = Ui_Importer()
@@ -108,6 +112,11 @@ class ImporterWindow(QMainWindow):
         self.ui.btn_browse_modpack.clicked.connect(self.browse)
         self.ui.btn_generate.clicked.connect(self.generate)
         self.update_progress.connect(self.do_update_progress)
+
+    def closeEvent(self, event: QCloseEvent):
+        if self.logwindow is not None:
+            self.logwindow.manualClose()
+        return super().closeEvent(event)
 
     def start_task(self, task: Task):
         self.tasks.append(task)
@@ -234,12 +243,28 @@ class ImporterWindow(QMainWindow):
             # Run cfmparse
             self.update_progress.emit("Running cfmparse...")
             try:
-                rc = subprocess.call([os.path.join(tempdir, "cfmparse"), "-b", browser, mpfile],
+                cmd = subprocess.Popen([os.path.join(tempdir, "cfmparse"), "-b", browser, mpfile],
                         cwd=tempdir,
-                        startupinfo=startupinfo)
-                if rc != 0:
+                        startupinfo=startupinfo,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE)
+                while cmd.poll() is None:
+                    while True:
+                        out = cmd.stdout.read(1)
+                        if out == '':
+                            break
+                        sys.stdout.write(out)
+                    while True:
+                        err = cmd.stderr.read(1)
+                        if err == '':
+                            break
+                        sys.stdout.write(err)
+                    time.sleep(0.01)
+                if cmd.returncode != 0:
                     raise Exception("Parsing modpack failed.")
             except Exception as e:
+                if cmd:
+                    cmd.kill()
                 raise e
 
             # Run cfmdown
@@ -267,12 +292,10 @@ class ImporterWindow(QMainWindow):
 
             # Zip contents of overrides folder
             self.update_progress.emit("Zipping generated files...")
-            oldwd = os.getcwd()
-            os.chdir(os.path.join(tempdir))
             try:
-                archive = shutil.make_archive(os.path.basename(filename)[:-4], format="zip", root_dir="overrides", base_dir="overrides")
+                overrides_dir = os.path.join(tempdir, "overrides")
+                archive = shutil.make_archive(os.path.basename(filename)[:-4], format="zip", 
+                        root_dir=overrides_dir, base_dir=overrides_dir)
                 shutil.move(archive, filename)
-                os.chdir(oldwd)
             except Exception as e:
-                os.chdir(oldwd)
                 raise e

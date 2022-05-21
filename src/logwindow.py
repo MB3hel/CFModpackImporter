@@ -26,30 +26,44 @@
 # THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+import io
+from typing import Optional
+from PySide6.QtGui import QFontDatabase, QCloseEvent, QTextCursor
+from PySide6.QtCore import QTimer
+from PySide6.QtWidgets import QMainWindow, QWidget
+from ui_logwindow import Ui_LogWindow
 
-import sys
-from contextlib import redirect_stdout, redirect_stderr
 
-from PySide6.QtWidgets import QApplication, QStyleFactory
-from PySide6.QtCore import Qt, QFile, QIODevice
+class LogWindow(QMainWindow):
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
 
-from importer import ImporterWindow
-from logwindow import LogWindow
+        self.stdout = io.StringIO()
 
-QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
-QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
-QApplication.setAttribute(Qt.AA_DontUseNativeMenuBar)
+        self.allow_close = False
 
-try:
-    import ctypes
-    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("com.mb3hel.cfmodpackimporter")
-except AttributeError:
-    pass
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_log)
+        self.timer.start(15)
 
-app = QApplication(sys.argv)
-log = LogWindow()
-with redirect_stdout(log.stdout), redirect_stderr(log.stdout):
-    log.show()
-    window = ImporterWindow(logwindow=log)
-    window.show()
-    app.exec()
+        self.ui = Ui_LogWindow()
+        self.ui.setupUi(self)
+
+        self.ui.txt_log.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
+    
+    def update_log(self):
+        txt = self.stdout.getvalue()
+        oldtxt = self.ui.txt_log.toPlainText()
+        if txt != oldtxt:
+            self.ui.txt_log.setPlainText(txt)
+            self.ui.txt_log.textCursor().movePosition(QTextCursor.End)
+    
+    def manualClose(self):
+        self.allow_close = True
+        self.close()
+
+    def closeEvent(self, event: QCloseEvent):
+        if not self.allow_close:
+            event.ignore()
+            return
+        return super().closeEvent(event)

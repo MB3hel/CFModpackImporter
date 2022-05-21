@@ -8,7 +8,7 @@ jobs:
       - run: python3 -m pip install setuptools wheel
       - run: python3 -m pip install -r requirements.txt
       - run: python3 compile.py
-      - run: pyinstaller ./src/main.py --onefile --name CFModpackImporter --icon=res/icon.icns
+      - run: pyinstaller ./src/main.py --windowed --name CFModpackImporter --icon=res/icon.icns --osx-bundle-identifier=com.mb3hel.cfmodpackimporter
       - uses: actions/upload-artifact@v2
         with:
           name: dist
