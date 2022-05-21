@@ -9,7 +9,7 @@ import requests
 import platform
 from typing import Optional, Callable
 import zipfile
-from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt
+from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QFile
 from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog
 from PySide6.QtGui import QCloseEvent
 from instructionsdialog import InstructionsDialog
@@ -66,6 +66,13 @@ class ImporterWindow(QMainWindow):
         self.pdialog = MyProgressDialog(self)
         self.pdialog.cancel()
         self.pdialog.hide()
+
+        # Add version to title
+        version_file = QFile(":/version.txt")
+        if version_file.open(QFile.ReadOnly):
+            version = bytes(version_file.readLine()).decode().strip()
+            print(version)
+            self.setWindowTitle("{0} - v{1}".format(self.windowTitle(), version))
 
         # Signal / slot setup
         self.ui.act_instructions.triggered.connect(self.open_instructions)

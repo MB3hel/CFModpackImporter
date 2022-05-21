@@ -3,6 +3,14 @@
 Download mods for curseforge modpacks and create a zip of files to be added to a modded instance in various third party launchers.
 
 
+## Usage
+
+Download the release for your OS and run the program. Follow instructions in `Help > Instructions`. **THIS DOES NOT CREATE AN INSTANCE IN ANY LAUNCHER**. It provides a zip that is to be added to the minecraft folder of an instance.
+
+Obtaining logs: on windows the app will open with a a terminal window showing logs. On macOS or Linux you may need to invoke it from a terminal to see the log.
+
+Fair warning: this is alpha quality software. It will have bugs, crashes, etc. It is intended as a proof of concept for downloading modpacks without CF API. 
+
 ## Building and Running
 
 First, make sure python3 is installed. On windows, the executable name may be `python` not `python3`.
