@@ -299,7 +299,10 @@ class ImporterWindow(QMainWindow):
 
             # Copy mods to overrides
             self.update_progress.emit("Adding downloaded mods...")
-            shutil.move(os.path.join(tempdir, "mods"), os.path.join(tempdir, "overrides", "mods"))
+            if not os.path.exists(os.path.join(tempdir, "overrides", "mods")):
+                os.mkdir(os.path.join(tempdir, "overrides", "mods"))
+            for file in os.listdir(os.path.join(tempdir, "mods")):
+                shutil.move(os.path.join(tempdir, "mods", file), os.path.join(tempdir, "overrides", "mods"))
             print(os.listdir(tempdir))
 
             # Zip contents of overrides folder
@@ -307,7 +310,7 @@ class ImporterWindow(QMainWindow):
             try:
                 overrides_dir = os.path.join(tempdir, "overrides")
                 archive = shutil.make_archive(os.path.basename(filename)[:-4], format="zip", 
-                        root_dir=overrides_dir, base_dir=overrides_dir)
+                        root_dir=overrides_dir, base_dir=".")
                 shutil.move(archive, filename)
             except Exception as e:
                 raise e
