@@ -33,6 +33,7 @@ import os
 import shutil
 import tempfile
 import sys
+import threading
 import time
 import traceback
 import requests
@@ -88,9 +89,9 @@ class ImporterWindow(QMainWindow):
         super().__init__(parent)
 
         # Non-UI variables
+        self.logwindow = logwindow
         self.manifest_json = None
         self.tasks = []
-        self.logwindow = logwindow
 
         # Setup UI
         self.ui = Ui_Importer()
@@ -113,14 +114,13 @@ class ImporterWindow(QMainWindow):
         self.ui.btn_generate.clicked.connect(self.generate)
         self.update_progress.connect(self.do_update_progress)
 
-    def closeEvent(self, event: QCloseEvent):
-        if self.logwindow is not None:
-            self.logwindow.manualClose()
-        return super().closeEvent(event)
-
     def start_task(self, task: Task):
         self.tasks.append(task)
         QThreadPool.globalInstance().start(task)
+
+    def closeEvent(self, event: QCloseEvent):
+        self.logwindow.manualClose()
+        return super().closeEvent(event)
 
     def browse(self):
         filename = QFileDialog.getOpenFileName(self, self.tr("Select Modpack Zip"), QDir.homePath(), self.tr("Zip Files (*.zip)"))[0]
@@ -150,6 +150,7 @@ class ImporterWindow(QMainWindow):
             self.ui.btn_generate.setEnabled(False)
 
             dialog = QMessageBox(parent=self)
+            dialog.setWindowModality(Qt.WindowModal)
             dialog.setIcon(QMessageBox.Warning)
             dialog.setText("{0}: {1}".format(type(e).__name__, str(e)))
             dialog.setWindowTitle(self.tr("Error Opening Modpack Zip"))
@@ -198,6 +199,7 @@ class ImporterWindow(QMainWindow):
     def generate_exec(self, e):
         traceback.print_tb(e.__traceback__)
         dialog = QMessageBox(parent=self)
+        dialog.setWindowModality(Qt.WindowModal)
         dialog.setIcon(QMessageBox.Warning)
         dialog.setText("{0}: {1}".format(type(e).__name__, str(e)))
         dialog.setWindowTitle(self.tr("Error Generating Zip"))
@@ -234,11 +236,15 @@ class ImporterWindow(QMainWindow):
             with zipfile.ZipFile(os.path.join(tempdir, "cfmdown.zip"), "r") as zf:
                 zf.extractall(tempdir)
 
+            # TODO: xattr to allow running on macos
+            # TODO: chmod to allow running on non-windows
+
             # Copy modpack zip to tempdir
             self.update_progress.emit("Copying modpack zip...")
             mpfile = os.path.join(tempdir, "modpack.zip")
             shutil.copy(self.ui.txt_modpack_zip.text(), mpfile)
             browser = self.ui.cbox_browser.currentText()
+
 
             # Run cfmparse
             self.update_progress.emit("Running cfmparse...")
@@ -247,36 +253,42 @@ class ImporterWindow(QMainWindow):
                         cwd=tempdir,
                         startupinfo=startupinfo,
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE)
-                while cmd.poll() is None:
-                    while True:
-                        out = cmd.stdout.read(1)
-                        if out == '':
-                            break
-                        sys.stdout.write(out)
-                    while True:
-                        err = cmd.stderr.read(1)
-                        if err == '':
-                            break
-                        sys.stdout.write(err)
-                    time.sleep(0.01)
-                if cmd.returncode != 0:
+                        stderr=subprocess.STDOUT)
+                while True:
+                    out = cmd.stdout.readline()
+                    if out == b'' and cmd.poll() is not None:
+                        break
+                    if out != b'':
+                        print(out.replace(b'\r', b'').replace(b'\n', b'').decode())
+                if cmd.poll() != 0:
                     raise Exception("Parsing modpack failed.")
             except Exception as e:
                 if cmd:
                     cmd.kill()
                 raise e
+            cmd = None
 
             # Run cfmdown
             self.update_progress.emit("Running cfmdown...")
             try:
-                rc = subprocess.call([os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods"],
+                cmd = subprocess.Popen([os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods"],
                         cwd=tempdir,
-                        startupinfo=startupinfo)
-                if rc != 0:
-                    raise Exception("Parsing modpack failed.")
+                        startupinfo=startupinfo,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.STDOUT)
+                while True:
+                    out = cmd.stdout.readline()
+                    if out == b'' and cmd.poll() is not None:
+                        break
+                    if out != b'':
+                        print(out.replace(b'\r', b'').replace(b'\n', b'').decode())
+                if cmd.poll() != 0:
+                    raise Exception("Downloading mods failed.")
             except Exception as e:
+                if cmd:
+                    cmd.kill()
                 raise e
+            cmd = None
 
             # Extract modpack overrides
             self.update_progress.emit("Extracting modpack overrides...")

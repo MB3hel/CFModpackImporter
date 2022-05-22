@@ -27,36 +27,48 @@
 #
 
 import io
+from threading import Lock
 from typing import Optional
 from PySide6.QtGui import QFontDatabase, QCloseEvent, QTextCursor
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QMainWindow, QWidget
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QMainWindow, QWidget, QApplication
 from ui_logwindow import Ui_LogWindow
 
 
 class LogWindow(QMainWindow):
+    update = Signal()
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
 
-        self.stdout = io.StringIO()
-
+        self.buf = io.StringIO()
+        self.buflock = Lock()
         self.allow_close = False
-
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.update_log)
-        self.timer.start(15)
+        self.update.connect(self.do_update)
 
         self.ui = Ui_LogWindow()
         self.ui.setupUi(self)
 
         self.ui.txt_log.setFont(QFontDatabase.systemFont(QFontDatabase.FixedFont))
     
-    def update_log(self):
-        txt = self.stdout.getvalue()
-        oldtxt = self.ui.txt_log.toPlainText()
-        if txt != oldtxt:
-            self.ui.txt_log.setPlainText(txt)
-            self.ui.txt_log.textCursor().movePosition(QTextCursor.End)
+    def do_update(self):
+        value = self.buf.getvalue()
+        if value.endswith("\n"):
+            self.ui.txt_log.setPlainText(value)
+        else:
+            pos = value.rfind("\n")
+            self.ui.txt_log.setPlainText(value[0:pos+1])
+        tc = self.ui.txt_log.textCursor()
+        tc.movePosition(QTextCursor.End)
+        self.ui.txt_log.setTextCursor(tc)
+        self.ui.txt_log.ensureCursorVisible()
+
+    def write(self, s: str):
+        self.buf.write(s)
+        if s.find("\n") != -1:
+            self.update.emit()
+    
+    def flush(self):
+        pass
     
     def manualClose(self):
         self.allow_close = True

@@ -29,12 +29,29 @@
 
 import sys
 from contextlib import redirect_stdout, redirect_stderr
+from typing import Optional
 
 from PySide6.QtWidgets import QApplication, QStyleFactory
 from PySide6.QtCore import Qt, QFile, QIODevice
 
 from importer import ImporterWindow
 from logwindow import LogWindow
+
+log: Optional[LogWindow] = None
+
+
+class OutRedirector:
+    def __init__(self, oldstdout):
+        self.oldstdout = oldstdout
+    
+    def write(self, s):
+        global log
+        self.oldstdout.write(s)
+        if log is not None:
+            log.write(s)
+
+    def flush(self):
+        pass
 
 QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
 QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps)
@@ -46,9 +63,10 @@ try:
 except AttributeError:
     pass
 
-app = QApplication(sys.argv)
-log = LogWindow()
-with redirect_stdout(log.stdout), redirect_stderr(log.stdout):
+redirector = OutRedirector(sys.stdout)
+with redirect_stdout(redirector), redirect_stderr(redirector):
+    app = QApplication(sys.argv)
+    log = LogWindow()
     log.show()
     window = ImporterWindow(logwindow=log)
     window.show()
