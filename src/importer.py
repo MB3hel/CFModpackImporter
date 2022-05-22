@@ -195,6 +195,7 @@ class ImporterWindow(QMainWindow):
     def generate_done(self, res):
         print("IT WORKED!!!")
         self.pdialog.hide()
+        # TODO: Show dialog to user indicating success
 
     def generate_exec(self, e):
         traceback.print_tb(e.__traceback__)
