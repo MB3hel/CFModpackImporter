@@ -21,10 +21,15 @@ build_options = {
 }
 
 import sys
+import platform
 base = 'Win32GUI' if sys.platform=='win32' else None
 
+icon = None
+if platform.system() == "Windows":
+    icon = "res/icon.ico"
+
 executables = [
-    Executable('src/main.py', base=base, target_name = 'CFModpackImporter', icon='res/icon.ico')
+    Executable('src/main.py', base=base, target_name = 'CFModpackImporter', icon=icon)
 ]
 
 version = "unknown"
