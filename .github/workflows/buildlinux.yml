@@ -12,6 +12,6 @@ jobs:
       - run: python3 setup.py build --build-exe dist/CFModpackImporter
       - uses: actions/upload-artifact@v2
         with:
-          name: cfmimporter_linux64.zip
+          name: cfmimporter_linux64
           path: ./dist/*
           retention-days: 1

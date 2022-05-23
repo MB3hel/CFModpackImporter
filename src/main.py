@@ -76,7 +76,6 @@ with redirect_stdout(redirector), redirect_stderr(redirector):
     if getattr(sys, "frozen", False):
         certs = os.path.join(os.path.dirname(sys.executable), 'cacert.pem')
         print("Detected cx_Freeze package. Using ssl certs at '{0}'".format(certs))
-        os.environ["REQUESTS_CA_BUNDLE"] = certs
 
     window = ImporterWindow(logwindow=log, certs=certs)
     window.show()

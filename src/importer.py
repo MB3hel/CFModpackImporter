@@ -91,7 +91,7 @@ class ImporterWindow(QMainWindow):
 
         # Non-UI variables
         self.logwindow = logwindow
-        self.certs = None
+        self.certs = certs
         self.manifest_json = None
         self.tasks = []
 

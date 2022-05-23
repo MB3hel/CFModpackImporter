@@ -1,4 +1,3 @@
 PySide6
 shiboken6
 pyinstaller
-requests
