@@ -24,7 +24,7 @@ import sys
 base = 'Win32GUI' if sys.platform=='win32' else None
 
 executables = [
-    Executable('src/main.py', base=base, target_name = 'CFModpackImporter', icon='res/icon.png')
+    Executable('src/main.py', base=base, target_name = 'CFModpackImporter', icon='res/icon.ico')
 ]
 
 version = "unknown"
@@ -32,6 +32,15 @@ versionfilepath = os.path.join(os.path.dirname(__file__), "res", "version.txt")
 if os.path.exists(versionfilepath):
     with open(versionfilepath, "r") as versionfile:
         version = versionfile.readline().strip()
+
+alpha_pos = version.find("alpha")
+if alpha_pos > -1:
+    version = version[0:alpha_pos]
+beta_pos = version.find("beta")
+if beta_pos > -1:
+    version = version[0:beta_pos]
+if version.endswith("-"):
+    version = version[:-1]
 
 setup(name='CFModpackImporter',
         version = version,
