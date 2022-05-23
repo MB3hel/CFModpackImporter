@@ -22,15 +22,14 @@ executables = [
     Executable('src/main.py', base=base, target_name = 'CFModpackImporter')
 ]
 
-# oldcwd = os.getcwd()
-# try:
-#     os.chdir(os.path.join(os.path.dirname(__file__), "src"))
-    
-# finally:
-#     os.chdir(oldcwd)
+version = "unknown"
+versionfilepath = os.path.join(os.path.dirname(__file__), "res", "version.txt")
+if os.path.exists(versionfilepath):
+    with open(versionfilepath, "r") as versionfile:
+        version = versionfile.readline().strip()
 
 setup(name='CFModpackImporter',
-        version = '1.0',
+        version = version,
         description = '',
         options = {'build_exe': build_options},
         executables = executables)
