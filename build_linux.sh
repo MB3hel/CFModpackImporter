@@ -12,8 +12,6 @@ if [[ -f dist/ ]]; then
     rm -rf dist/
 fi
 
-python3.10 -m venv env
-source env/bin/activate
 python -m pip install -r requirements.txt
 python -m pip install cx_Freeze
 python compile.py
