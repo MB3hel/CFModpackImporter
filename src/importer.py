@@ -303,7 +303,7 @@ class ImporterWindow(QMainWindow):
                 if out != b'':
                     print(out.replace(b'\r', b'').replace(b'\n', b'').decode())
             if cmd.poll() != 0:
-                raise Exception("Failed to execute command '{0}'".format(" ".join(cmd_list)))
+                raise Exception("Failed to execute command '{0}'. Process exited with code {1}.".format(" ".join(cmd_list), cmd.returncode))
         except Exception as e:
             if cmd is not None:
                 cmd.kill()
