@@ -10,8 +10,10 @@ jobs:
       - run: python3 -m pip install --upgrade cx_Freeze
       - run: python3 compile.py
       - run: python3 setup.py build --build-exe dist/CFModpackImporter
+      - working-directory: dist
+        run: zip -r CFModpackImporter_Linux64.zip CFModpackImporter/
       - uses: actions/upload-artifact@v2
         with:
-          name: cfmimporter_linux64
-          path: ./dist/*
+          name: dist_linux64.zip
+          path: ./dist/CFModpackImporter_Linux64.zip
           retention-days: 1
