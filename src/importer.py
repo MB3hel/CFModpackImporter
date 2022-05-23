@@ -27,6 +27,7 @@
 #
 
 
+from ast import List
 import json
 from logging import root
 import os
@@ -209,13 +210,6 @@ class ImporterWindow(QMainWindow):
         self.pdialog.hide()
 
     def do_generate(self, filename: str):
-        # Don't show console window on windows
-        if platform.system() == "Windows":
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        else:
-            startupinfo = None
-
         with tempfile.TemporaryDirectory() as tempdir:
             print("Working generation directory: {0}".format(tempdir))
             # Download required tools
@@ -237,8 +231,14 @@ class ImporterWindow(QMainWindow):
             with zipfile.ZipFile(os.path.join(tempdir, "cfmdown.zip"), "r") as zf:
                 zf.extractall(tempdir)
 
-            # TODO: xattr to allow running on macos
-            # TODO: chmod to allow running on non-windows
+            # Remove quarentine (allow running) on macOS
+            if platform.system() == "Darwin":
+                self.run_cmd(["xattr", "-d", "com.apple.quarantine"], tempdir)
+            
+            # Allow execution of the downloaded files
+            if platform.system() != "Windows":
+                self.run_cmd(["chmod", "+x", "./cfmdown"], tempdir)
+                self.run_cmd(["chmod", "+x", "./cfmdown"], tempdir)
 
             # Copy modpack zip to tempdir
             self.update_progress.emit("Copying modpack zip...")
@@ -249,47 +249,11 @@ class ImporterWindow(QMainWindow):
 
             # Run cfmparse
             self.update_progress.emit("Running cfmparse...")
-            try:
-                cmd = subprocess.Popen([os.path.join(tempdir, "cfmparse"), "-b", browser, mpfile],
-                        cwd=tempdir,
-                        startupinfo=startupinfo,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-                while True:
-                    out = cmd.stdout.readline()
-                    if out == b'' and cmd.poll() is not None:
-                        break
-                    if out != b'':
-                        print(out.replace(b'\r', b'').replace(b'\n', b'').decode())
-                if cmd.poll() != 0:
-                    raise Exception("Parsing modpack failed.")
-            except Exception as e:
-                if cmd:
-                    cmd.kill()
-                raise e
-            cmd = None
+            self.run_cmd([os.path.join(tempdir, "cfmparse"), "-b", browser, mpfile], tempdir)
 
             # Run cfmdown
             self.update_progress.emit("Running cfmdown...")
-            try:
-                cmd = subprocess.Popen([os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods"],
-                        cwd=tempdir,
-                        startupinfo=startupinfo,
-                        stdout=subprocess.PIPE,
-                        stderr=subprocess.STDOUT)
-                while True:
-                    out = cmd.stdout.readline()
-                    if out == b'' and cmd.poll() is not None:
-                        break
-                    if out != b'':
-                        print(out.replace(b'\r', b'').replace(b'\n', b'').decode())
-                if cmd.poll() != 0:
-                    raise Exception("Downloading mods failed.")
-            except Exception as e:
-                if cmd:
-                    cmd.kill()
-                raise e
-            cmd = None
+            self.run_cmd([os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods"], tempdir)
 
             # Extract modpack overrides
             self.update_progress.emit("Extracting modpack overrides...")
@@ -315,3 +279,30 @@ class ImporterWindow(QMainWindow):
                 shutil.move(archive, filename)
             except Exception as e:
                 raise e
+    
+    def run_cmd(self, cmd_list: List[str], working_dir: str):
+        # Don't show console window on windows
+        if platform.system() == "Windows":
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        else:
+            startupinfo = None
+        
+        try:
+            cmd = subprocess.Popen(cmd_list,
+                    cwd=working_dir,
+                    startupinfo=startupinfo,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT)
+            while True:
+                out = cmd.stdout.readline()
+                if out == b'' and cmd.poll() is not None:
+                    break
+                if out != b'':
+                    print(out.replace(b'\r', b'').replace(b'\n', b'').decode())
+            if cmd.poll() != 0:
+                raise Exception("Failed to execute command '{0}'".format(" ".join(cmd_list)))
+        except Exception as e:
+            if cmd:
+                cmd.kill()
+            raise e
