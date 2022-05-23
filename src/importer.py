@@ -39,7 +39,7 @@ import time
 import traceback
 import requests
 import platform
-from typing import Optional, Callable
+from typing import Optional, Callable, List
 import zipfile
 from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QFile
 from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog
@@ -232,13 +232,15 @@ class ImporterWindow(QMainWindow):
                 zf.extractall(tempdir)
 
             # Remove quarentine (allow running) on macOS
+            print("Allowing execution of downloaded files...")
             if platform.system() == "Darwin":
                 self.run_cmd(["xattr", "-d", "com.apple.quarantine"], tempdir)
             
             # Allow execution of the downloaded files
+            print("Making downloaded files executable")
             if platform.system() != "Windows":
                 self.run_cmd(["chmod", "+x", "./cfmdown"], tempdir)
-                self.run_cmd(["chmod", "+x", "./cfmdown"], tempdir)
+                self.run_cmd(["chmod", "+x", "./cfmparse"], tempdir)
 
             # Copy modpack zip to tempdir
             self.update_progress.emit("Copying modpack zip...")
@@ -287,7 +289,7 @@ class ImporterWindow(QMainWindow):
             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
         else:
             startupinfo = None
-        
+        cmd = None
         try:
             cmd = subprocess.Popen(cmd_list,
                     cwd=working_dir,
@@ -303,6 +305,6 @@ class ImporterWindow(QMainWindow):
             if cmd.poll() != 0:
                 raise Exception("Failed to execute command '{0}'".format(" ".join(cmd_list)))
         except Exception as e:
-            if cmd:
+            if cmd is not None:
                 cmd.kill()
             raise e
