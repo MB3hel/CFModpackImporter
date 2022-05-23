@@ -70,6 +70,13 @@ with redirect_stdout(redirector), redirect_stderr(redirector):
     app = QApplication(sys.argv)
     log = LogWindow()
     log.show()
-    window = ImporterWindow(logwindow=log)
+
+    # Fix SSL issues with requests module with cx_Freeze
+    certs = None
+    if getattr(sys, "frozen", False):
+        certs = os.path.join(os.path.dirname(sys.executable), 'cacert.pem')
+        print("Detected cx_Freeze package. Using ssl certs at '{0}'".format(certs))
+
+    window = ImporterWindow(logwindow=log, certs=certs)
     window.show()
     app.exec()
