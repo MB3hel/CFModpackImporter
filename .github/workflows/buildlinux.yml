@@ -6,11 +6,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: sudo apt-get install python3-setuptools python3-wheel
-      - run: python3 -m pip install -r requirements.txt
+      - run: python3 -m pip install --upgrade -r requirements.txt
+      - run: python3 -m pip install --upgrade cx_Freeze
       - run: python3 compile.py
-      - run: pyinstaller ./src/main.py --onefile --name CFModpackImporter
+      - run: python3 setup.py build --build-exe dist/CFModpackImporter
       - uses: actions/upload-artifact@v2
         with:
-          name: dist
-          path: ./dist/*
+          name: CFModpackImporter_Linux64.zip
+          path: ./dist/CFModpackImporter
           retention-days: 1
