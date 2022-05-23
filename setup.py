@@ -13,13 +13,17 @@ from cx_Freeze import setup, Executable
 
 # Dependencies are automatically detected, but it might need
 # fine tuning.
-build_options = {'packages': [], 'excludes': []}
+build_options = {
+    'packages': [], 
+    'excludes': [],
+    'include_files': ['res/icon.png']
+}
 
 import sys
 base = 'Win32GUI' if sys.platform=='win32' else None
 
 executables = [
-    Executable('src/main.py', base=base, target_name = 'CFModpackImporter')
+    Executable('src/main.py', base=base, target_name = 'CFModpackImporter', icon='res/icon.png')
 ]
 
 version = "unknown"
@@ -30,6 +34,8 @@ if os.path.exists(versionfilepath):
 
 setup(name='CFModpackImporter',
         version = version,
-        description = '',
+        description = 'Proof of Concept tool to download curseforge modpacks without using the API.',
         options = {'build_exe': build_options},
+        author = 'Marcus Behel',
+        author_email = 'marcus.behel@mindspring.com',
         executables = executables)
