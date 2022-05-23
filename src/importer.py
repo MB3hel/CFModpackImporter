@@ -37,7 +37,6 @@ import sys
 import threading
 import time
 import traceback
-import requests
 import platform
 from typing import Optional, Callable, List
 import zipfile
@@ -49,6 +48,7 @@ from logwindow import LogWindow
 from ui_importer import Ui_Importer
 from aboutdialog import AboutDialog
 import subprocess
+import urllib3
 
 
 class MyProgressDialog(QProgressDialog):
@@ -86,12 +86,11 @@ class Task(QRunnable, QObject):
 class ImporterWindow(QMainWindow):
     update_progress = Signal(str)
 
-    def __init__(self, logwindow: LogWindow, certs = None, parent: Optional[QWidget] = None):
+    def __init__(self, logwindow: LogWindow, parent: Optional[QWidget] = None):
         super().__init__(parent)
 
         # Non-UI variables
         self.logwindow = logwindow
-        self.certs = certs
         self.manifest_json = None
         self.tasks = []
 
@@ -223,14 +222,14 @@ class ImporterWindow(QMainWindow):
                 cfmdown_file = "linux64.zip"
             else:
                 raise Exception(self.tr("No build of CFModDownloader available for this OS."))
-            res = requests.get(
-                "https://github.com/MB3hel/CFModDownloader/releases/latest/download/{0}".format(cfmdown_file),
-                verify=self.certs)
-            if res.status_code != 200:
-                print(res.status_code)
+            
+            http = urllib3.PoolManager()
+            res = http.request("GET", "https://github.com/MB3hel/CFModDownloader/releases/latest/download/{0}".format(cfmdown_file))
+            if res.status != 200:
+                print(res.status)
                 raise Exception(self.tr("Failed to download CFModDownloader."))
             with open(os.path.join(tempdir, "cfmdown.zip"), "wb") as f:
-                f.write(res.content)
+                f.write(res.data)
             with zipfile.ZipFile(os.path.join(tempdir, "cfmdown.zip"), "r") as zf:
                 zf.extractall(tempdir)
 
