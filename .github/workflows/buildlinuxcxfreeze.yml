@@ -1,0 +1,17 @@
+name: Build Linux
+on: [workflow_dispatch]
+jobs:
+  Build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: sudo apt-get install python3-setuptools python3-wheel
+      - run: python3 -m pip install -r requirements.txt
+      - run: python3 -m pip install cx_freeze
+      - run: python3 compile.py
+      - run: cxfreeze -c src/main.py --target-name=CFModpackImporter --target-dir=dist
+      - uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: ./dist/*
+          retention-days: 1
