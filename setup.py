@@ -1,6 +1,7 @@
 
 import os
 import sys
+import requests
 
 # Add src directory to PYTHONPATH so cxfreeze can find modules in that folder imported by main.py
 # if not "PYTHONPATH" in os.environ:
@@ -16,7 +17,7 @@ from cx_Freeze import setup, Executable
 build_options = {
     'packages': [], 
     'excludes': [],
-    'include_files': ['res/icon.png']
+    'include_files': ['res/icon.png', (requests.certs.where(), 'cacert.pem')]
 }
 
 import sys

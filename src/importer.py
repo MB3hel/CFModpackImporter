@@ -105,7 +105,7 @@ class ImporterWindow(QMainWindow):
         version_file = QFile(":/version.txt")
         if version_file.open(QFile.ReadOnly):
             version = bytes(version_file.readLine()).decode().strip()
-            print(version)
+            print("v{0}".format(version))
             self.setWindowTitle("{0} - v{1}".format(self.windowTitle(), version))
 
         # Signal / slot setup

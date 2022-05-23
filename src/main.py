@@ -28,6 +28,7 @@
 
 
 import sys
+import os
 from contextlib import redirect_stdout, redirect_stderr
 from typing import Optional
 
@@ -65,9 +66,17 @@ except AttributeError:
 
 redirector = OutRedirector(sys.stdout)
 with redirect_stdout(redirector), redirect_stderr(redirector):
+
     app = QApplication(sys.argv)
     log = LogWindow()
     log.show()
+
+    # Fix SSL issues with requests module with cx_Freeze
+    if getattr(sys, "frozen", False):
+        certs = os.path.join(os.path.dirname(sys.executable), 'cacert.pem')
+        print("Detected cx_Freeze package. Using ssl certs at '{0}'".format(certs))
+        os.environ["REQUESTS_CA_BUNDLE"] = certs
+
     window = ImporterWindow(logwindow=log)
     window.show()
     app.exec()
