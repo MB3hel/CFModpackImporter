@@ -14,11 +14,12 @@ jobs:
       - run: mkdir linux_src_package/CFModpackImporter
       - run: cp linux_src_package/CFModpackImporterStarter linux_src_package/CFModpackImporter/CFModpackImporter
       - run: cp -r src/ linux_src_package/CFModpackImporter/
+      - run: cp res/icon.png linux_src_package/CFModpackImporter/
       - run: cp requirements.txt linux_src_package/CFModpackImporter/
       - working-directory: linux_src_package
-        run: zip CFModpackImporter_Linux_x64.zip -r CFModpackImporter
+        run: zip CFModpackImporter_Linux_any.zip -r CFModpackImporter
       - uses: actions/upload-artifact@v2
         with:
           name: dist
-          path: ./linux_src_package/CFModpackImporter_Linux_x64.zip
+          path: ./linux_src_package/CFModpackImporter_Linux_any.zip
           retention-days: 1
