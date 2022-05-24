@@ -12,9 +12,9 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - run: python -m pip install pyinstaller
       - run: python compile.py
-      - run: pyinstaller ./src/main.py --onefile --windowed --name CFModpackImporter --icon=res/icon.icns
+      - run: pyinstaller ./src/main.py --onefile --windowed --name CFModpackImporter --icon=res/icon.png
       - uses: actions/upload-artifact@v2
         with:
-          name: dist_linux64
+          name: CFModpackImporter_Linux64
           path: ./dist/*
           retention-days: 1
