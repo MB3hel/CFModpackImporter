@@ -20,6 +20,11 @@ build_options = {
     'include_files': ['res/icon.png', (requests.certs.where(), 'cacert.pem')]
 }
 
+bdist_msi_options = {
+    'install_icon': 'res/icon.ico',
+    
+}
+
 import sys
 import platform
 base = 'Win32GUI' if sys.platform=='win32' else None
