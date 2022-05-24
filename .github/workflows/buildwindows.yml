@@ -1,4 +1,4 @@
-name: Build Linux
+name: Build Windows (x86)
 on: [workflow_dispatch]
 jobs:
   Build:
@@ -15,6 +15,6 @@ jobs:
       - run: pyinstaller ./src/main.py --onefile --windowed --name CFModpackImporter --icon=res/icon.ico
       - uses: actions/upload-artifact@v2
         with:
-          name: CFModpackImporter_Win32
+          name: CFModpackImporter_Windows_x86
           path: ./dist/*
           retention-days: 1

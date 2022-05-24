@@ -1,4 +1,4 @@
-name: Build Linux
+name: Build macOS (x64)
 on: [workflow_dispatch]
 jobs:
   Build:
@@ -15,6 +15,6 @@ jobs:
       - run: pyinstaller ./src/main.py --windowed --name CFModpackImporter --icon=res/icon.icns --osx-bundle-identifier=com.mb3hel.cfmodpackimporter
       - uses: actions/upload-artifact@v2
         with:
-          name: CFModpackImporter_MacOSIntel64
+          name: CFModpackImporter_macOS_x64
           path: ./dist/*
           retention-days: 1
