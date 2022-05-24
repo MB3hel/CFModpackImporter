@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>600</width>
-    <height>365</height>
+    <width>659</width>
+    <height>423</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,10 +19,73 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="11" column="0">
+    <item row="13" column="0">
      <widget class="QLabel" name="label_5">
       <property name="text">
        <string>Number Mods</string>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="0">
+     <widget class="QLabel" name="label_2">
+      <property name="text">
+       <string>Modloader</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="0" colspan="3">
+     <widget class="QLineEdit" name="txt_modpack_zip">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="12" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_modloader">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="0">
+     <widget class="QLabel" name="label_3">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>Modpack Name</string>
+      </property>
+     </widget>
+    </item>
+    <item row="17" column="0" colspan="4">
+     <widget class="QPushButton" name="btn_generate">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Download Mods and Generate Zip</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_nummods">
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0" colspan="3">
+     <widget class="QLabel" name="label_7">
+      <property name="font">
+       <font>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Modpack Information</string>
       </property>
      </widget>
     </item>
@@ -39,35 +102,10 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_modpack_name">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-        <horstretch>1</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
     <item row="10" column="0">
-     <widget class="QLabel" name="label_2">
+     <widget class="QLabel" name="label_6">
       <property name="text">
-       <string>Modloader</string>
-      </property>
-     </widget>
-    </item>
-    <item row="6" column="0" colspan="3">
-     <widget class="QLabel" name="label_7">
-      <property name="font">
-       <font>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Modpack Information</string>
+       <string>Minecraft Version</string>
       </property>
      </widget>
     </item>
@@ -83,44 +121,7 @@
       </property>
      </widget>
     </item>
-    <item row="7" column="0">
-     <widget class="QLabel" name="label_3">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
-      <property name="text">
-       <string>Modpack Name</string>
-      </property>
-     </widget>
-    </item>
-    <item row="11" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_nummods">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="15" column="0" colspan="4">
-     <widget class="QPushButton" name="btn_generate">
-      <property name="enabled">
-       <bool>false</bool>
-      </property>
-      <property name="text">
-       <string>Download Mods and Generate Zip</string>
-      </property>
-     </widget>
-    </item>
-    <item row="8" column="0">
-     <widget class="QLabel" name="label_6">
-      <property name="text">
-       <string>Minecraft Version</string>
-      </property>
-     </widget>
-    </item>
-    <item row="12" column="1" colspan="2">
+    <item row="14" column="1" colspan="2">
      <spacer name="verticalSpacer">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
@@ -133,33 +134,27 @@
       </property>
      </spacer>
     </item>
-    <item row="10" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_modloader">
+    <item row="9" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_modpack_name">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="8" column="1" colspan="3">
+    <item row="10" column="1" colspan="3">
      <widget class="QLineEdit" name="txt_mc_version">
       <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="3" column="0">
-     <widget class="QLabel" name="label_8">
-      <property name="font">
-       <font>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Download Using</string>
-      </property>
-     </widget>
-    </item>
-    <item row="13" column="0" colspan="4">
+    <item row="15" column="0" colspan="4">
      <widget class="QLabel" name="label_4">
       <property name="font">
        <font>
@@ -177,28 +172,7 @@
       </property>
      </widget>
     </item>
-    <item row="2" column="0" colspan="3">
-     <widget class="QLineEdit" name="txt_modpack_zip">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
-    <item row="3" column="1" colspan="3">
-     <widget class="QComboBox" name="cbox_browser">
-      <item>
-       <property name="text">
-        <string>chrome</string>
-       </property>
-      </item>
-      <item>
-       <property name="text">
-        <string>firefox</string>
-       </property>
-      </item>
-     </widget>
-    </item>
-    <item row="14" column="0" colspan="4">
+    <item row="16" column="0" colspan="4">
      <widget class="QLabel" name="label_9">
       <property name="font">
        <font>
@@ -217,6 +191,114 @@
       </property>
      </widget>
     </item>
+    <item row="5" column="0" colspan="4">
+     <widget class="QWidget" name="widget" native="true">
+      <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="spacing">
+        <number>3</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_10">
+         <property name="text">
+          <string>Concurrent Parsing Tabs</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="txt_cfmparse_tabs">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tabs parameter when calling cfmparse. During parsing modpack (resolving mod ids to urls) how many browser tabs should be used. More could speed up resolution, but use more resources on your computer. If too many are used, this will actually get slower.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>4</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_11">
+         <property name="text">
+          <string>Concurrent Downloads</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="txt_cfmdown_tabs">
+         <property name="toolTip">
+          <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Tabs parameter when calling cfmparse. How many mods to download in parallel. This is the number of browser tabs that are open while downloading mods.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+         </property>
+         <property name="text">
+          <string>12</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+    <item row="3" column="0" colspan="4">
+     <widget class="QWidget" name="widget_2" native="true">
+      <layout class="QHBoxLayout" name="horizontalLayout_2">
+       <property name="spacing">
+        <number>3</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_8">
+         <property name="font">
+          <font>
+           <bold>false</bold>
+          </font>
+         </property>
+         <property name="text">
+          <string>Download Using</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QComboBox" name="cbox_browser">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+           <horstretch>1</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <item>
+          <property name="text">
+           <string>firefox</string>
+          </property>
+         </item>
+         <item>
+          <property name="text">
+           <string>chrome</string>
+          </property>
+         </item>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
    </layout>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -224,7 +306,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>600</width>
+     <width>659</width>
      <height>22</height>
     </rect>
    </property>

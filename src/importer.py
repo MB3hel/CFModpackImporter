@@ -42,8 +42,8 @@ import platform
 from typing import Optional, Callable, List
 import zipfile
 from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QFile
-from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog
-from PySide6.QtGui import QCloseEvent
+from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog, QLineEdit
+from PySide6.QtGui import QCloseEvent, QIntValidator
 from instructionsdialog import InstructionsDialog
 from logwindow import LogWindow
 from ui_importer import Ui_Importer
@@ -100,6 +100,10 @@ class ImporterWindow(QMainWindow):
         self.pdialog = MyProgressDialog(self)
         self.pdialog.cancel()
         self.pdialog.hide()
+
+        # Only allow integers in concurrent tabs fields
+        self.ui.txt_cfmparse_tabs.setValidator(QIntValidator(1, 999))
+        self.ui.txt_cfmdown_tabs.setValidator(QIntValidator(1, 999))
 
         # Add version to title
         version_file = QFile(":/version.txt")
@@ -194,9 +198,15 @@ class ImporterWindow(QMainWindow):
         
 
     def generate_done(self, res):
-        print("IT WORKED!!!")
+        print("Modpack zip generated successfully at '{0}'".format(res))
         self.pdialog.hide()
-        # TODO: Show dialog to user indicating success
+        dialog = QMessageBox(parent=self)
+        dialog.setWindowModality(Qt.WindowModal)
+        dialog.setIcon(QMessageBox.Information)
+        dialog.setText(self.tr("Modpack zip file generated successfully. Extract the contents of this zip file to the minecraft folder of a modded instance in the launcher of your choice. {0}").format(res))
+        dialog.setWindowTitle(self.tr("Successfully Generated Zip"))
+        dialog.setStandardButtons(QMessageBox.Ok)
+        dialog.exec()
 
     def generate_exec(self, e):
         traceback.print_tb(e.__traceback__)
@@ -248,14 +258,23 @@ class ImporterWindow(QMainWindow):
             shutil.copy(self.ui.txt_modpack_zip.text(), mpfile)
             browser = self.ui.cbox_browser.currentText()
 
-
             # Run cfmparse
+            parse_tabs = 4
+            try:
+                parse_tabs = int(self.ui.txt_cfmparse_tabs.text())
+            except:
+                print("Invalid number of tabs for cfmparse. Using default of {0}".format(parse_tabs))
             self.update_progress.emit("Running cfmparse...")
-            self.run_cmd([os.path.join(tempdir, "cfmparse"), "-b", browser, mpfile], tempdir)
+            self.run_cmd([os.path.join(tempdir, "cfmparse"), "-b", browser, "-t", str(parse_tabs), mpfile], tempdir)
 
             # Run cfmdown
+            down_tabs = 4
+            try:
+                down_tabs = int(self.ui.txt_cfmdown_tabs.text())
+            except:
+                print("Invalid number of tabs for cfmdown. Using default of {0}".format(down_tabs))
             self.update_progress.emit("Running cfmdown...")
-            self.run_cmd([os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods"], tempdir)
+            self.run_cmd([os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods", "-t", str(down_tabs)], tempdir)
 
             # Extract modpack overrides
             self.update_progress.emit("Extracting modpack overrides...")
@@ -281,6 +300,7 @@ class ImporterWindow(QMainWindow):
                 shutil.move(archive, filename)
             except Exception as e:
                 raise e
+        return filename
     
     def run_cmd(self, cmd_list: List[str], working_dir: str):
         # Don't show console window on windows
