@@ -118,6 +118,7 @@ class ImporterWindow(QMainWindow):
         self.ui.btn_browse_modpack.clicked.connect(self.browse)
         self.ui.btn_generate.clicked.connect(self.generate)
         self.update_progress.connect(self.do_update_progress)
+        self.ui.cbo_browser.currentTextChanged.connect(self.browser_changed)
 
     def start_task(self, task: Task):
         self.tasks.append(task)
@@ -126,6 +127,11 @@ class ImporterWindow(QMainWindow):
     def closeEvent(self, event: QCloseEvent):
         self.logwindow.manualClose()
         return super().closeEvent(event)
+
+    def browser_changed(self, text: str):
+        self.ui.chk_headless.setEnabled(text == "firefox")
+        if not self.ui.chk_headless.isEnabled():
+            self.ui.chk_headless.setChecked(False)
 
     def browse(self):
         filename = QFileDialog.getOpenFileName(self, self.tr("Select Modpack Zip"), QDir.homePath(), self.tr("Zip Files (*.zip)"))[0]
@@ -256,7 +262,8 @@ class ImporterWindow(QMainWindow):
             self.update_progress.emit("Copying modpack zip...")
             mpfile = os.path.join(tempdir, "modpack.zip")
             shutil.copy(self.ui.txt_modpack_zip.text(), mpfile)
-            browser = self.ui.cbox_browser.currentText()
+            browser = self.ui.cbo_browser.currentText()
+            headless = self.ui.chk_headless.isChecked()
 
             # Run cfmparse
             parse_tabs = 4
@@ -265,7 +272,10 @@ class ImporterWindow(QMainWindow):
             except:
                 print("Invalid number of tabs for cfmparse. Using default of {0}".format(parse_tabs))
             self.update_progress.emit("Running cfmparse...")
-            self.run_cmd([os.path.join(tempdir, "cfmparse"), "-b", browser, "-t", str(parse_tabs), mpfile], tempdir)
+            args = [os.path.join(tempdir, "cfmparse"), "-b", browser, "-t", str(parse_tabs), mpfile]
+            if headless:
+                args.append("-n")
+            self.run_cmd(args, tempdir)
 
             # Run cfmdown
             down_tabs = 4
@@ -274,7 +284,10 @@ class ImporterWindow(QMainWindow):
             except:
                 print("Invalid number of tabs for cfmdown. Using default of {0}".format(down_tabs))
             self.update_progress.emit("Running cfmdown...")
-            self.run_cmd([os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods", "-t", str(down_tabs)], tempdir)
+            args = [os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods", "-t", str(down_tabs)]
+            if headless:
+                args.append("-n")
+            self.run_cmd(args, tempdir)
 
             # Extract modpack overrides
             self.update_progress.emit("Extracting modpack overrides...")

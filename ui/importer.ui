@@ -277,7 +277,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QComboBox" name="cbox_browser">
+        <widget class="QComboBox" name="cbo_browser">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
            <horstretch>1</horstretch>
@@ -294,6 +294,13 @@
            <string>chrome</string>
           </property>
          </item>
+        </widget>
+       </item>
+       <item>
+        <widget class="QCheckBox" name="chk_headless">
+         <property name="text">
+          <string>Headless</string>
+         </property>
         </widget>
        </item>
       </layout>
