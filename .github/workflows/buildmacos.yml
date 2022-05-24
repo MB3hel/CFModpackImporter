@@ -14,8 +14,10 @@ jobs:
       - run: python -m pip install pyinstaller
       - run: python compile.py
       - run: pyinstaller ./src/main.py --windowed --name CFModpackImporter --icon=res/icon.icns --osx-bundle-identifier=com.mb3hel.cfmodpackimporter
+      - working-directory: dist
+        run: zip CFModpackImporter_macOS_x64.zip -r CFModpackImporter.app
       - uses: actions/upload-artifact@v2
         with:
-          name: CFModpackImporter_macOS_x64
-          path: ./dist/*
+          name: dist
+          path: ./dist/CFModpackImporter_macOS_x64.zip
           retention-days: 1
