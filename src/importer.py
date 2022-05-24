@@ -86,12 +86,11 @@ class Task(QRunnable, QObject):
 class ImporterWindow(QMainWindow):
     update_progress = Signal(str)
 
-    def __init__(self, logwindow: LogWindow, certs = None, parent: Optional[QWidget] = None):
+    def __init__(self, logwindow: LogWindow, parent: Optional[QWidget] = None):
         super().__init__(parent)
 
         # Non-UI variables
         self.logwindow = logwindow
-        self.certs = certs
         self.manifest_json = None
         self.tasks = []
 
@@ -223,9 +222,7 @@ class ImporterWindow(QMainWindow):
                 cfmdown_file = "linux64.zip"
             else:
                 raise Exception(self.tr("No build of CFModDownloader available for this OS."))
-            res = requests.get(
-                "https://github.com/MB3hel/CFModDownloader/releases/latest/download/{0}".format(cfmdown_file),
-                verify=self.certs)
+            res = requests.get("https://github.com/MB3hel/CFModDownloader/releases/latest/download/{0}".format(cfmdown_file))
             if res.status_code != 200:
                 print(res.status_code)
                 raise Exception(self.tr("Failed to download CFModDownloader."))
