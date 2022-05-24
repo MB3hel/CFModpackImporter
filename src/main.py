@@ -47,7 +47,7 @@ class OutRedirector:
     
     def write(self, s):
         global log
-        if self.oldstdout is not None and self.oldstdout.writable():
+        if self.oldstdout is not None and hasattr(self.oldstdout, "write"):
             self.oldstdout.write(s)
         if log is not None:
             log.write(s)
