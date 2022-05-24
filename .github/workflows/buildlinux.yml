@@ -1,4 +1,4 @@
-name: Build Linux (x64)
+name: Build Linux (any)
 on: [workflow_dispatch]
 jobs:
   Build:
@@ -9,13 +9,14 @@ jobs:
         with:
           python-version: '3.10'
           architecture: 'x64'
-      - run: python --version
       - run: python -m pip install -r requirements.txt
-      - run: python -m pip install pyinstaller
       - run: python compile.py
-      - run: pyinstaller ./src/main.py --onefile --windowed --name CFModpackImporter --icon=res/icon.png
+      - run: mkdir linux_src_package/CFModpackImporter
+      - run: cp linux_src_package/CFModpackImporterStarter linux_src_package/CFModpackImporter/CFModpackImporter
+      - run: cp -r src/ linux_src_package/CFModpackImporter/
+      - run: cp requirements.txt linux_src_package/CFModpackImporter/
       - uses: actions/upload-artifact@v2
         with:
           name: CFModpackImporter_Linux_x64
-          path: ./dist/*
+          path: ./linux_src_package/*
           retention-days: 1

@@ -36,7 +36,12 @@ DIR=$(realpath $(dirname "$0"))
 pushd "$DIR" > /dev/null
 
 # Make sure python3 installed
-type -P python3 >/dev/null 2>&1 || echo "python3 not installed. Install python3 using distribution packages. On Ubuntu this can be done by running 'sudo apt-get install python3'" && exit 1
+type -P python3 >/dev/null 2>&1
+
+if [[ $? != 0 ]]; then 
+    echo "python3 not installed. Install python3 using distribution packages. On Ubuntu this can be done by running 'sudo apt-get install python3'"
+    exit 1
+fi
 
 # Make sure pip installed
 python3 -m pip > /dev/null 2>&1
@@ -47,7 +52,7 @@ if [[ $? != 0 ]]; then
 fi
 
 # make sure venv installed
-python3 -m venv
+python3 -m venv > /dev/null 2>&1
 if [[ $? != 2 ]]; then
     echo "venv not installed. Install venv using distribution packages. On Ubuntu this can be done by running 'sudo apt-get install python3-venv'"
     popd
@@ -63,7 +68,7 @@ if [[ ! -d env ]]; then
 fi
 
 # Run app in virtual environment
-soruce env/bin/activate
+source env/bin/activate
 python src/main.py
 
 # Restore original working directory on exit
