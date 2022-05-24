@@ -15,8 +15,10 @@ jobs:
       - run: cp linux_src_package/CFModpackImporterStarter linux_src_package/CFModpackImporter/CFModpackImporter
       - run: cp -r src/ linux_src_package/CFModpackImporter/
       - run: cp requirements.txt linux_src_package/CFModpackImporter/
+      - working-directory: linux_src_package
+        run: zip CFModpackImporter_Linux_x64.zip -r CFModpackImporter
       - uses: actions/upload-artifact@v2
         with:
-          name: CFModpackImporter_Linux_x64
-          path: ./linux_src_package/*
+          name: dist
+          path: ./linux_src_package/CFModpackImporter_Linux_x64.zip
           retention-days: 1
