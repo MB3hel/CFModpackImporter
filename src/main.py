@@ -73,4 +73,4 @@ with redirect_stdout(redirector), redirect_stderr(redirector):
     log.show()
     window = ImporterWindow(logwindow=log)
     window.show()
-    app.exec()
+    sys.exit(app.exec())

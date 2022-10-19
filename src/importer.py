@@ -40,7 +40,7 @@ import traceback
 import platform
 from typing import Optional, Callable, List, Dict
 import zipfile
-from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QFile
+from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QFile, QThread
 from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog, QLineEdit
 from PySide6.QtGui import QCloseEvent, QIntValidator
 from downloader import Downloader
@@ -101,6 +101,9 @@ class ImporterWindow(QMainWindow):
         self.pdialog = MyProgressDialog(self)
         self.pdialog.cancel()
         self.pdialog.hide()
+
+        # TODO: Change this to a list for parallel downloads
+        self.downloader = Downloader(self)
 
         # Only allow integers
         self.ui.txt_parallel_down.setValidator(QIntValidator(1, 999))
@@ -287,10 +290,10 @@ class ImporterWindow(QMainWindow):
             modsdir = os.path.join(tempdir, "overrides", "mods")
             if not os.path.exists(modsdir):
                 os.mkdir(modsdir)
-            downloader = Downloader(idmap, urls, modsdir)
-            while not downloader.done:
+            self.downloader.start(idmap, urls, modsdir)
+            while not self.downloader.done:
                 time.sleep(1)
-            if downloader.error:
+            if self.downloader.error:
                 raise Exception("Failed to download one or more mods.")
 
             # Zip contents of overrides folder

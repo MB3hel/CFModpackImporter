@@ -3,18 +3,40 @@ from typing import Dict, List
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
 from PySide6.QtCore import QUrl, Signal, QObject
+from PySide6.QtGui import QCloseEvent
 import time
 import os
 from bs4 import BeautifulSoup
 
 
+class MyWebEngineView(QWebEngineView):
+    closed = Signal()
+
+    def closeEvent(self, arg__1: QCloseEvent):
+        self.closed.emit()
+        return super().closeEvent(arg__1)
+
+
 ## Wraps QT Web View to download mods from CurseForge
 class Downloader(QObject):
+
+    # Signal to start next download
+    next = Signal()
+
     ## Create a new Downloader and start downloading mods
     #  @param idmap Dict of project ids mapped to fileids idmap[projid] = fileid
     #  @param urls List of urls for mods
-    def __init__(self, idmap: Dict[int, int], urls: List[str], destfolder: str):
-        super().__init__(None)
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.__idmap = {}
+        self.__urls = []
+        self.__destfoler = ""
+        self.__web = MyWebEngineView()
+        self.__web.resize(640, 480)
+        self.__web.closed.connect(self.__on_error)
+        self.next.connect(self.__start_next)
+        
+    def start(self, idmap: Dict[int, int], urls: List[str], destfolder: str):
         self.__idmap = idmap
         self.__urls = urls
         self.__destfoler = destfolder
@@ -22,10 +44,7 @@ class Downloader(QObject):
         self.__error = False
         self.__curr_idx = 0
         self.__attempts = 0
-        self.__web = QWebEngineView()
-        self.__web.resize(640, 480)
-        self.__web.show()
-        self.__start_next()
+        self.next.emit()
     
     @property
     def done(self) -> bool:
@@ -46,6 +65,9 @@ class Downloader(QObject):
         self.__done = True
 
     def __start_next(self):
+        if(self.__curr_idx == 0):
+            self.__web.show()
+
         if(self.__attempts > 3):
             self.__on_error()
             return
@@ -55,26 +77,49 @@ class Downloader(QObject):
 
         if self.__attempts != 0:
             print("(Retry {})".format(self.__attempts), end="")
-        print("Downloading mod {0} of {1}...")
+        print("Downloading mod {0} of {1}...".format(self.__curr_idx, len(self.__urls)))
                 
         # Connect loadFinished signal and load next url
         self.__web.loadFinished.connect(self.__page_loaded)
+        self.__web.loadProgress.connect(self.__page_progress)
         url = QUrl(self.__urls[self.__curr_idx])
         self.__attempts += 1
         self.__web.load(url)
         
+    def __page_progress(self, progress: int):
+        # Run javascript to read page source
+        print("Progress {}".format(progress))
+        self.__web.page().runJavaScript("document.documentElement.outerHTML", 0, self.__source_read)
 
     def __page_loaded(self, ok: bool):
-        self.__web.loadFinished.disconnect(self.__page_loaded)
-        if ok:
-            # Run javascript to load page source
-            self.__web.page().runJavaScript("document.documentElement.outerHTML", self.__source_read)
-        else:
-            # Retry loading the page in 2 seconds
+        if not ok:
+            # Load failed (note that slots may have already been disconnected)
+            try:
+                self.__web.loadProgress.disconnect(self.__page_progress)
+                self.__web.loadFinished.disconnect(self.__page_loaded)
+            except:
+                pass
+
+            # Retry download of this mod 2 seconds
+            print("Loading page failed.")
             time.sleep(2)
-            self.__start_next()
+            self.next.emit()
 
     def __source_read(self, html: str):
+        if html.find("Project ID") == -1:
+            # page is not loaded enough yet
+            print("Not enough")
+            return
+        print("Loaded")
+        
+        # Page is as loaded as needed
+        try:
+            # Slots may have already been disconnected
+            self.__web.loadProgress.disconnect(self.__page_progress)
+            self.__web.loadFinished.disconnect(self.__page_loaded)
+        except:
+            pass
+
         # Connect download request signal
         self.__web.page().profile().downloadRequested.connect(self.__download_handler)
         
@@ -97,7 +142,7 @@ class Downloader(QObject):
         dlurl = self.__web.url().toString()
         if dlurl.endswith("/"):
             dlurl = dlurl[:-1]
-        dlurl = "{0}/{1}".format(dlurl, fileid)
+        dlurl = "{0}/download/{1}".format(dlurl, fileid)
         self.__web.load(QUrl(dlurl))
 
     def __download_handler(self, download: QWebEngineDownloadRequest):
@@ -116,10 +161,11 @@ class Downloader(QObject):
             # Download done. Start the next one.
             self.__curr_idx += 1
             self.__attempts = 0
-            self.__start_next()
+            self.next.emit()
         elif(state == QWebEngineDownloadRequest.DownloadState.DownloadCancelled or \
                 state == QWebEngineDownloadRequest.DownloadState.DownloadInterrupted):
             # Download failed. Retry in 2 seconds.
+            print("Download interrupted.")
             time.sleep(2)
-            self.__start_next()
+            self.next.emit()
 
