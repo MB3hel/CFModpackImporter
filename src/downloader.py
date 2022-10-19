@@ -59,7 +59,7 @@ class Downloader(QObject):
     def error(self) -> bool:
         return self.__error
 
-    def start(self, idmap: Dict[int, int], urls: List[str], destfolder: str):
+    def start(self, idmap: Dict[int, int], urls: List[str], destfolder: str, show_webview: bool):
         self.__idmap = idmap
         self.__urls = urls
         self.__destfoler = destfolder
@@ -68,10 +68,11 @@ class Downloader(QObject):
         self.__curr_idx = 0
         self.__attempts = 0
         self.__state = None
+        self.__show_webview = show_webview
         self.next.emit()
 
     def __start_next(self):
-        if(self.__curr_idx == 0):
+        if(self.__curr_idx == 0 and self.__show_webview):
             # Show view on first download started
             self.__web.show()
 
@@ -88,7 +89,7 @@ class Downloader(QObject):
         # Show what is being downloaded in the log
         if self.__attempts != 0:
             print("(Retry {})".format(self.__attempts), end="")
-        print("Downloading mod {0} of {1}...".format(self.__curr_idx, len(self.__urls)))
+        print("Downloading mod {0} of {1}...".format(self.__curr_idx+1, len(self.__urls)))
                 
         # Load next url
         self.__web.stop()

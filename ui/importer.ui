@@ -68,6 +68,19 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QCheckBox" name="cbx_show_webview">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="text">
+          <string>Show WebView Window</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>

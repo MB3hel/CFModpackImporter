@@ -284,13 +284,12 @@ class ImporterWindow(QMainWindow):
             # TODO: Number of splits is number of parallel downloads indicated in UI
             # TODO: If any downloader completes with error, all should be stopped
 
-            # TODO: See if this can be done headless (webview not shown or size 0)
-
             # Download each file into the overrides mods directory
+            self.update_progress.emit("Downloading mods...")
             modsdir = os.path.join(tempdir, "overrides", "mods")
             if not os.path.exists(modsdir):
                 os.mkdir(modsdir)
-            self.downloader.start(idmap, urls, modsdir)
+            self.downloader.start(idmap, urls, modsdir, self.ui.cbx_show_webview.isChecked())
             while not self.downloader.done:
                 time.sleep(1)
             if self.downloader.error:
