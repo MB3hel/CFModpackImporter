@@ -10,9 +10,6 @@ from bs4 import BeautifulSoup
 
 ## Wraps QT Web View to download mods from CurseForge
 class Downloader(QObject):
-    error = Signal()
-    done = Signal()
-
     ## Create a new Downloader and start downloading mods
     #  @param idmap Dict of project ids mapped to fileids idmap[projid] = fileid
     #  @param urls List of urls for mods
@@ -21,19 +18,32 @@ class Downloader(QObject):
         self.__idmap = idmap
         self.__urls = urls
         self.__destfoler = destfolder
+        self.__done = False
+        self.__error = False
         self.__curr_idx = 0
         self.__attempts = 0
         self.__web = QWebEngineView()
+        self.__web.resize(640, 480)
         self.__web.show()
         self.__start_next()
     
+    @property
+    def done(self) -> bool:
+        return self.__done
+    
+    @property
+    def error(self) -> bool:
+        return self.__error
+
     def __on_error(self):
         self.__web.close()
-        self.error.emit()
+        self.__error = True
+        self.__done = True
     
     def __on_done(self):
         self.__web.close()
-        self.done.emit()
+        self.__error = False
+        self.__done = True
 
     def __start_next(self):
         if(self.__attempts > 3):
@@ -42,7 +52,11 @@ class Downloader(QObject):
         if(self.__curr_idx == len(self.__urls)):
             self.__on_done()
             return
-        
+
+        if self.__attempts != 0:
+            print("(Retry {})".format(self.__attempts), end="")
+        print("Downloading mod {0} of {1}...")
+                
         # Connect loadFinished signal and load next url
         self.__web.loadFinished.connect(self.__page_loaded)
         url = QUrl(self.__urls[self.__curr_idx])

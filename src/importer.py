@@ -38,16 +38,18 @@ import threading
 import time
 import traceback
 import platform
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Dict
 import zipfile
 from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QFile
 from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog, QLineEdit
 from PySide6.QtGui import QCloseEvent, QIntValidator
+from downloader import Downloader
 from instructionsdialog import InstructionsDialog
 from logwindow import LogWindow
 from ui_importer import Ui_Importer
 from aboutdialog import AboutDialog
 import subprocess
+from bs4 import BeautifulSoup
 
 
 class MyProgressDialog(QProgressDialog):
@@ -230,19 +232,16 @@ class ImporterWindow(QMainWindow):
             self.update_progress.emit("Copying modpack zip...")
             mpfile = os.path.join(tempdir, "modpack.zip")
             shutil.copy(self.ui.txt_modpack_zip.text(), mpfile)
-            browser = self.ui.cbo_browser.currentText()
-            headless = self.ui.chk_headless.isChecked()
 
-            # TODO: Read manifest to get Dict[projid] -> fileid
-            # TODO: Read modlist html to get set of urls
-            # TODO: for each url: 
-            # TODO:     use webview to parse projid from url
-            # TODO:     use webview to download correct file (using fileid)
-            # TODO: endfor
-            # TODO: Implement the downloads with multiple threads (split urls)
-            # TODO: Implement a timeout for each download (with retries)
-            # TODO: If a download fails, all threads should be killed
-            # TODO: See if this can be done headless (webview window not visible)
+            # Extract manifest.json and modlist.html
+            self.update_progress.emit("Extracting files from modpack zip...")
+            try:
+                with zipfile.ZipFile(mpfile) as zf:
+                    zf.extract('manifest.json', tempdir)
+                    zf.extract('modlist.html', tempdir)
+            except:
+                traceback.print_exc()
+                raise Exception("Failed to extract manifest.json and / or modlist.html")
 
             # Extract modpack overrides
             self.update_progress.emit("Extracting modpack overrides...")
@@ -251,13 +250,48 @@ class ImporterWindow(QMainWindow):
             shutil.move(os.path.join(tempdir, "modpack_extracted", "overrides"), os.path.join(tempdir, "overrides"))
             shutil.rmtree(os.path.join(tempdir, "modpack_extracted"))
 
-            # Copy mods to overrides
-            self.update_progress.emit("Adding downloaded mods...")
-            if not os.path.exists(os.path.join(tempdir, "overrides", "mods")):
-                os.mkdir(os.path.join(tempdir, "overrides", "mods"))
-            for file in os.listdir(os.path.join(tempdir, "mods")):
-                shutil.move(os.path.join(tempdir, "mods", file), os.path.join(tempdir, "overrides", "mods"))
-            print(os.listdir(tempdir))
+            # Read manifest to get Dict[projid] -> fileid
+            # idmap[projid] = fileid
+            idmap: Dict[int, int] = {}
+            self.update_progress.emit("Parsing manifest.json...")
+            try:
+                with open(os.path.join(tempdir, "manifest.json"), "r") as manifest_file:
+                    filedata = json.load(manifest_file)
+                for file in filedata["files"]:
+                    projectid = file["projectID"]
+                    fileid = file["fileID"]
+                    idmap[int(projectid)] = int(fileid)
+            except:
+                traceback.print_exc()
+                raise Exception("Failed to parse manifest.json")
+
+            # Read modlist html to get list of urls
+            urls: List[str] = []
+            self.update_progress.emit("Parsing modlist.html...")
+            try:
+                with open(os.path.join(tempdir, "modlist.html"), "rb") as modlist_file:
+                    soup = BeautifulSoup(modlist_file.read().decode('utf-8'), "lxml")
+                    for a in soup.find_all('a'):
+                        urls.append(a.get("href"))
+            except:
+                traceback.print_exc()
+                raise Exception("Failed to parse modlist.html")
+
+            # TODO: Split into multiple downloader objects and split url list
+            # TODO: Number of splits is number of parallel downloads indicated in UI
+            # TODO: If any downloader completes with error, all should be stopped
+
+            # TODO: See if this can be done headless (webview not shown or size 0)
+
+            # Download each file into the overrides mods directory
+            modsdir = os.path.join(tempdir, "overrides", "mods")
+            if not os.path.exists(modsdir):
+                os.mkdir(modsdir)
+            downloader = Downloader(idmap, urls, modsdir)
+            while not downloader.done:
+                time.sleep(1)
+            if downloader.error:
+                raise Exception("Failed to download one or more mods.")
 
             # Zip contents of overrides folder
             self.update_progress.emit("Zipping generated files...")
@@ -267,5 +301,6 @@ class ImporterWindow(QMainWindow):
                         root_dir=overrides_dir, base_dir=".")
                 shutil.move(archive, filename)
             except Exception as e:
+                traceback.print_exc()
                 raise e
         return filename
