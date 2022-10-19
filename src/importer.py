@@ -314,7 +314,7 @@ class ImporterWindow(QMainWindow):
             suburls = self.split_list(urls, parallel)
             for i in range(parallel):
                 self.downloaders[i].start(idmap, suburls[i], modsdir, self.ui.cbx_show_webview.isChecked())
-            
+
             # Wait for all downloaders to finish. If any have error, stop all
             done = False
             error = False

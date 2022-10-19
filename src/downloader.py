@@ -129,6 +129,7 @@ class Downloader(QObject):
                 self.__web.page().runJavaScript("document.documentElement.outerHTML", 0, self.__source_read)
             else:
                 # Error loading page. Retry same mod.
+                print("Downloader {0}: Failed to load page for parsing.".format(self.__id))
                 self.__next_timer.setInterval(2000)
                 self.next_timer_sig.emit()
 
@@ -163,7 +164,7 @@ class Downloader(QObject):
             dlurl = self.__web.url().toString()
             if dlurl.endswith("/"):
                 dlurl = dlurl[:-1]
-            dlurl = "{0}/download/{1}".format(dlurl, fileid)
+            dlurl = "{0}/download/{1}/file".format(dlurl, fileid)
             self.__web.load(QUrl(dlurl))
     
     def __download_handler(self, download: QWebEngineDownloadRequest):
@@ -180,10 +181,13 @@ class Downloader(QObject):
         if self.__state == Downloader.State.WaitForDownload:
             if(state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted):
                 # Download done. Start the next one.
+                self.__curr_idx += 1
+                self.__attempts = 0
                 self.__next_timer.setInterval(2000)
                 self.next_timer_sig.emit()
             elif(state == QWebEngineDownloadRequest.DownloadState.DownloadCancelled or \
                     state == QWebEngineDownloadRequest.DownloadState.DownloadInterrupted):
                 # Download failed. Retry same mode.
+                print("Downloader {0}: Download failed.".format(self.__id))
                 self.__next_timer.setInterval(2000)
                 self.next_timer_sig.emit()
