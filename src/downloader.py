@@ -132,6 +132,12 @@ class Downloader(QObject):
                 print("Downloader {0}: Failed to load page for parsing.".format(self.__id))
                 self.__next_timer.setInterval(2000)
                 self.next_timer_sig.emit()
+        elif self.__state == Downloader.State.LoadDownloadPage:
+            if not ok:
+                # Error loading page. Retry same mod.
+                print("Downloader {0}: Failed to load page for downloading.".format(self.__id))
+                self.__next_timer.setInterval(2000)
+                self.next_timer_sig.emit()
 
     def __page_progress(self, progress: int):
         if self.__state == Downloader.State.LoadParsePage:
@@ -160,11 +166,14 @@ class Downloader(QObject):
             # Construct and navigate to download url
             # This url will start a file download after a number of seconds
             # Thus, don't need a load finished slot, but a download requested slot
+            self.__web.stop()
             self.__state = Downloader.State.LoadDownloadPage
             dlurl = self.__web.url().toString()
             if dlurl.endswith("/"):
                 dlurl = dlurl[:-1]
-            dlurl = "{0}/download/{1}/file".format(dlurl, fileid)
+            dlurl = "{0}/download/{1}".format(dlurl, fileid)
+            self.__dlload_timeout.setInterval(10000)
+            self.__dlload_timeout.start()
             self.__web.load(QUrl(dlurl))
     
     def __download_handler(self, download: QWebEngineDownloadRequest):
