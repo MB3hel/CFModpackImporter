@@ -102,8 +102,8 @@ class ImporterWindow(QMainWindow):
         self.pdialog.cancel()
         self.pdialog.hide()
 
-        # TODO: Change this to a list for parallel downloads
-        self.downloader = Downloader(self)
+        # Holds currently used download instances
+        self.downloaders: List[Downloader] = []
 
         # Only allow integers
         self.ui.txt_parallel_down.setValidator(QIntValidator(1, 999))
@@ -198,7 +198,14 @@ class ImporterWindow(QMainWindow):
         if filename == "":
             return
 
-        task = Task(self, self.do_generate, filename)
+        # Setup downloaders before starting do_generate
+        parallel = int(self.ui.txt_parallel_down.text())
+        if len(self.downloaders) != parallel:
+            self.downloaders = []
+            for i in range(parallel):
+                self.downloaders.append(Downloader(self, i+1))
+
+        task = Task(self, self.do_generate, filename, parallel)
         task.task_complete.connect(self.generate_done)
         task.task_exception.connect(self.generate_exec)
         self.start_task(task)
@@ -227,7 +234,20 @@ class ImporterWindow(QMainWindow):
         dialog.exec()
         self.pdialog.hide()
 
-    def do_generate(self, filename: str):
+    def split_list(self, l: List, n: int) -> List[List]:
+        # Split l into n "equally" sized sublists
+        sublists: List[List] = []
+        for i in range(n):
+            sublists.append([])
+        l_pos = 0
+        curr_subl = 0
+        while l_pos < len(l):
+            sublists[curr_subl].append(l[l_pos])
+            l_pos += 1
+            curr_subl = (curr_subl + 1) % n
+        return sublists
+
+    def do_generate(self, filename: str, parallel: int):
         with tempfile.TemporaryDirectory() as tempdir:
             print("Working generation directory: {0}".format(tempdir))
 
@@ -280,19 +300,37 @@ class ImporterWindow(QMainWindow):
                 traceback.print_exc()
                 raise Exception("Failed to parse modlist.html")
 
-            # TODO: Split into multiple downloader objects and split url list
-            # TODO: Number of splits is number of parallel downloads indicated in UI
-            # TODO: If any downloader completes with error, all should be stopped
-
             # Download each file into the overrides mods directory
             self.update_progress.emit("Downloading mods...")
+
+            # Prepare mods directory
             modsdir = os.path.join(tempdir, "overrides", "mods")
             if not os.path.exists(modsdir):
                 os.mkdir(modsdir)
-            self.downloader.start(idmap, urls, modsdir, self.ui.cbx_show_webview.isChecked())
-            while not self.downloader.done:
+
+            # TODO: Instead of splitting url list, just have each downloader remove an item from the shared list when a new one is needed
+            # TODO: This is more efficient as it ensures no downloaders are ever sitting idle if one gets delayed
+            # Start all downloaders on a subset of urls
+            suburls = self.split_list(urls, parallel)
+            for i in range(parallel):
+                self.downloaders[i].start(idmap, suburls[i], modsdir, self.ui.cbx_show_webview.isChecked())
+            
+            # Wait for all downloaders to finish. If any have error, stop all
+            done = False
+            error = False
+            while not done:
+                done = True
+                for i in range(parallel):
+                    if not self.downloaders[i].done:
+                        done = False
+                    elif self.downloaders[i].error:
+                        error = True
+                        done = True
+                        break
                 time.sleep(1)
-            if self.downloader.error:
+            if error:
+                for i in range(parallel):
+                    self.downloaders[i].stop()
                 raise Exception("Failed to download one or more mods.")
 
             # Zip contents of overrides folder

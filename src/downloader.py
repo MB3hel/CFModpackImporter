@@ -1,5 +1,5 @@
 
-from PySide6.QtCore import QObject, Signal, QUrl
+from PySide6.QtCore import QObject, Signal, QUrl, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
@@ -8,6 +8,7 @@ from typing import List, Dict
 from bs4 import BeautifulSoup
 import time
 
+# TODO: Add page load timeout with increased delay before retry
 
 class MyWebEngineView(QWebEngineView):
     closed = Signal()
@@ -18,20 +19,22 @@ class MyWebEngineView(QWebEngineView):
 
 class Downloader(QObject):
 
-    next = Signal()
+    error_sig = Signal()
+    next_timer_sig = Signal()
 
     class State(Enum):
         LoadParsePage = auto()
         LoadDownloadPage = auto()
         WaitForDownload = auto()
 
-    def __init__(self, parent):
+    def __init__(self, parent, id: int):
         super().__init__(parent)
 
         # Information provided in start() function
         self.__idmap = {}
         self.__urls = []
         self.__destfoler = ""
+        self.__id = id
 
         # State machine
         self.__curr_idx = 0
@@ -48,8 +51,14 @@ class Downloader(QObject):
         self.__web.loadProgress.connect(self.__page_progress)
         self.__web.page().profile().downloadRequested.connect(self.__download_handler)
 
+        # Delay timer
+        self.__next_timer = QTimer(self)
+        self.__next_timer.setSingleShot(True)
+        self.__next_timer.timeout.connect(self.__start_next)
+
         # Other signals
-        self.next.connect(self.__start_next)
+        self.next_timer_sig.connect(self.__next_timer.start)
+        self.error_sig.connect(self.__on_error)
     
     @property
     def done(self) -> bool:
@@ -69,7 +78,12 @@ class Downloader(QObject):
         self.__attempts = 0
         self.__state = None
         self.__show_webview = show_webview
-        self.next.emit()
+        self.__next_timer.setInterval(1)
+        self.next_timer_sig.emit()
+    
+    def stop(self):
+        self.__state = None
+        self.error_sig.emit()
 
     def __start_next(self):
         if(self.__curr_idx == 0 and self.__show_webview):
@@ -88,8 +102,8 @@ class Downloader(QObject):
 
         # Show what is being downloaded in the log
         if self.__attempts != 0:
-            print("(Retry {})".format(self.__attempts), end="")
-        print("Downloading mod {0} of {1}...".format(self.__curr_idx+1, len(self.__urls)))
+            print("(Retry {}) ".format(self.__attempts), end="")
+        print("Downloader {0}: Mod {1} of {2}...".format(self.__id, self.__curr_idx+1, len(self.__urls)))
                 
         # Load next url
         self.__web.stop()
@@ -115,8 +129,8 @@ class Downloader(QObject):
                 self.__web.page().runJavaScript("document.documentElement.outerHTML", 0, self.__source_read)
             else:
                 # Error loading page. Retry same mod.
-                time.sleep(0.1)
-                self.next.emit()
+                self.__next_timer.setInterval(2000)
+                self.next_timer_sig.emit()
 
     def __page_progress(self, progress: int):
         if self.__state == Downloader.State.LoadParsePage:
@@ -166,11 +180,10 @@ class Downloader(QObject):
         if self.__state == Downloader.State.WaitForDownload:
             if(state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted):
                 # Download done. Start the next one.
-                self.__curr_idx += 1
-                self.__attempts = 0
-                self.next.emit()
+                self.__next_timer.setInterval(2000)
+                self.next_timer_sig.emit()
             elif(state == QWebEngineDownloadRequest.DownloadState.DownloadCancelled or \
                     state == QWebEngineDownloadRequest.DownloadState.DownloadInterrupted):
                 # Download failed. Retry same mode.
-                time.sleep(0.1)
-                self.next.emit()
+                self.__next_timer.setInterval(2000)
+                self.next_timer_sig.emit()
