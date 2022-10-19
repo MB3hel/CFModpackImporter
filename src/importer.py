@@ -37,7 +37,6 @@ import sys
 import threading
 import time
 import traceback
-import requests
 import platform
 from typing import Optional, Callable, List
 import zipfile
@@ -101,9 +100,8 @@ class ImporterWindow(QMainWindow):
         self.pdialog.cancel()
         self.pdialog.hide()
 
-        # Only allow integers in concurrent tabs fields
-        self.ui.txt_cfmparse_tabs.setValidator(QIntValidator(1, 999))
-        self.ui.txt_cfmdown_tabs.setValidator(QIntValidator(1, 999))
+        # Only allow integers
+        self.ui.txt_parallel_down.setValidator(QIntValidator(1, 999))
 
         # Add version to title
         version_file = QFile(":/version.txt")
@@ -118,7 +116,6 @@ class ImporterWindow(QMainWindow):
         self.ui.btn_browse_modpack.clicked.connect(self.browse)
         self.ui.btn_generate.clicked.connect(self.generate)
         self.update_progress.connect(self.do_update_progress)
-        self.ui.cbo_browser.currentTextChanged.connect(self.browser_changed)
 
     def start_task(self, task: Task):
         self.tasks.append(task)
@@ -228,35 +225,6 @@ class ImporterWindow(QMainWindow):
     def do_generate(self, filename: str):
         with tempfile.TemporaryDirectory() as tempdir:
             print("Working generation directory: {0}".format(tempdir))
-            # Download required tools
-            self.update_progress.emit("Downloading CFModDownloader...")
-            if platform.system() == "Windows":
-                cfmdown_file = "win64.zip"
-            elif platform.system() == "Darwin":
-                cfmdown_file = "macos64.zip"
-            elif platform.system() == "Linux":
-                cfmdown_file = "linux64.zip"
-            else:
-                raise Exception(self.tr("No build of CFModDownloader available for this OS."))
-            res = requests.get("https://github.com/MB3hel/CFModDownloader/releases/latest/download/{0}".format(cfmdown_file))
-            if res.status_code != 200:
-                print(res.status_code)
-                raise Exception(self.tr("Failed to download CFModDownloader."))
-            with open(os.path.join(tempdir, "cfmdown.zip"), "wb") as f:
-                f.write(res.content)
-            with zipfile.ZipFile(os.path.join(tempdir, "cfmdown.zip"), "r") as zf:
-                zf.extractall(tempdir)
-
-            # Remove quarentine (allow running) on macOS
-            print("Allowing execution of downloaded files...")
-            if platform.system() == "Darwin":
-                self.run_cmd(["xattr", "-d", "com.apple.quarantine"], tempdir)
-            
-            # Allow execution of the downloaded files
-            print("Making downloaded files executable")
-            if platform.system() != "Windows":
-                self.run_cmd(["chmod", "+x", "./cfmdown"], tempdir)
-                self.run_cmd(["chmod", "+x", "./cfmparse"], tempdir)
 
             # Copy modpack zip to tempdir
             self.update_progress.emit("Copying modpack zip...")
@@ -265,29 +233,16 @@ class ImporterWindow(QMainWindow):
             browser = self.ui.cbo_browser.currentText()
             headless = self.ui.chk_headless.isChecked()
 
-            # Run cfmparse
-            parse_tabs = 4
-            try:
-                parse_tabs = int(self.ui.txt_cfmparse_tabs.text())
-            except:
-                print("Invalid number of tabs for cfmparse. Using default of {0}".format(parse_tabs))
-            self.update_progress.emit("Running cfmparse...")
-            args = [os.path.join(tempdir, "cfmparse"), "-b", browser, "-t", str(parse_tabs), mpfile]
-            if headless:
-                args.append("-n")
-            self.run_cmd(args, tempdir)
-
-            # Run cfmdown
-            down_tabs = 4
-            try:
-                down_tabs = int(self.ui.txt_cfmdown_tabs.text())
-            except:
-                print("Invalid number of tabs for cfmdown. Using default of {0}".format(down_tabs))
-            self.update_progress.emit("Running cfmdown...")
-            args = [os.path.join(tempdir, "cfmdown"), "-b", browser, "-f", "modfile_modpack.txt", "-d", "mods", "-t", str(down_tabs)]
-            if headless:
-                args.append("-n")
-            self.run_cmd(args, tempdir)
+            # TODO: Read manifest to get Dict[projid] -> fileid
+            # TODO: Read modlist html to get set of urls
+            # TODO: for each url: 
+            # TODO:     use webview to parse projid from url
+            # TODO:     use webview to download correct file (using fileid)
+            # TODO: endfor
+            # TODO: Implement the downloads with multiple threads (split urls)
+            # TODO: Implement a timeout for each download (with retries)
+            # TODO: If a download fails, all threads should be killed
+            # TODO: See if this can be done headless (webview window not visible)
 
             # Extract modpack overrides
             self.update_progress.emit("Extracting modpack overrides...")
@@ -314,30 +269,3 @@ class ImporterWindow(QMainWindow):
             except Exception as e:
                 raise e
         return filename
-    
-    def run_cmd(self, cmd_list: List[str], working_dir: str):
-        # Don't show console window on windows
-        if platform.system() == "Windows":
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        else:
-            startupinfo = None
-        cmd = None
-        try:
-            cmd = subprocess.Popen(cmd_list,
-                    cwd=working_dir,
-                    startupinfo=startupinfo,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT)
-            while True:
-                out = cmd.stdout.readline()
-                if out == b'' and cmd.poll() is not None:
-                    break
-                if out != b'':
-                    print(out.replace(b'\r', b'').replace(b'\n', b'').decode())
-            if cmd.poll() != 0:
-                raise Exception("Failed to execute command '{0}'. Process exited with code {1}.".format(" ".join(cmd_list), cmd.returncode))
-        except Exception as e:
-            if cmd is not None:
-                cmd.kill()
-            raise e
