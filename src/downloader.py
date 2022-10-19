@@ -2,14 +2,14 @@
 from typing import Dict, List
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
-from PySide6.QtCore import QUrl, Signal
+from PySide6.QtCore import QUrl, Signal, QObject
 import time
 import os
 from bs4 import BeautifulSoup
 
 
 ## Wraps QT Web View to download mods from CurseForge
-class Downloader:
+class Downloader(QObject):
     error = Signal()
     done = Signal()
 
@@ -17,6 +17,7 @@ class Downloader:
     #  @param idmap Dict of project ids mapped to fileids idmap[projid] = fileid
     #  @param urls List of urls for mods
     def __init__(self, idmap: Dict[int, int], urls: List[str], destfolder: str):
+        super().__init__(None)
         self.__idmap = idmap
         self.__urls = urls
         self.__destfoler = destfolder
