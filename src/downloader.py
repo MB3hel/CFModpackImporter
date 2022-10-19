@@ -34,6 +34,8 @@ class Downloader(QObject):
         self.__web = MyWebEngineView()
         self.__web.resize(640, 480)
         self.__web.closed.connect(self.__on_error)
+        self.__web.loadFinished.connect(self.__page_loaded)
+        self.__web.loadProgress.connect(self.__page_progress)
         self.next.connect(self.__start_next)
         
     def start(self, idmap: Dict[int, int], urls: List[str], destfolder: str):
@@ -79,27 +81,24 @@ class Downloader(QObject):
             print("(Retry {})".format(self.__attempts), end="")
         print("Downloading mod {0} of {1}...".format(self.__curr_idx, len(self.__urls)))
                 
-        # Connect loadFinished signal and load next url
-        self.__web.loadFinished.connect(self.__page_loaded)
-        self.__web.loadProgress.connect(self.__page_progress)
+        # Load next url
+        self.__web.stop()
+        self.__ignore_loads = False
         url = QUrl(self.__urls[self.__curr_idx])
         self.__attempts += 1
         self.__web.load(url)
         
     def __page_progress(self, progress: int):
+        if self.__ignore_loads:
+            return
         # Run javascript to read page source
         print("Progress {}".format(progress))
         self.__web.page().runJavaScript("document.documentElement.outerHTML", 0, self.__source_read)
 
     def __page_loaded(self, ok: bool):
+        if self.__ignore_loads:
+            return
         if not ok:
-            # Load failed (note that slots may have already been disconnected)
-            try:
-                self.__web.loadProgress.disconnect(self.__page_progress)
-                self.__web.loadFinished.disconnect(self.__page_loaded)
-            except:
-                pass
-
             # Retry download of this mod 2 seconds
             print("Loading page failed.")
             time.sleep(2)
@@ -112,13 +111,7 @@ class Downloader(QObject):
             return
         print("Loaded")
         
-        # Page is as loaded as needed
-        try:
-            # Slots may have already been disconnected
-            self.__web.loadProgress.disconnect(self.__page_progress)
-            self.__web.loadFinished.disconnect(self.__page_loaded)
-        except:
-            pass
+        # Page is as loaded as it needs to be
 
         # Connect download request signal
         self.__web.page().profile().downloadRequested.connect(self.__download_handler)
@@ -139,6 +132,7 @@ class Downloader(QObject):
         # Construct and navigate to download url
         # This url will start a file download after a number of seconds
         # Thus, don't need a load finished slot, but a download requested slot
+        self.__ignore_loads = True
         dlurl = self.__web.url().toString()
         if dlurl.endswith("/"):
             dlurl = dlurl[:-1]
