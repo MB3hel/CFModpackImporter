@@ -4,6 +4,8 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
 from PySide6.QtCore import QUrl
 import time
+import os
+from bs4 import BeautifulSoup
 
 
 ## Wraps QT Web View to download mods from CurseForge
@@ -11,9 +13,10 @@ class Downloader:
     ## Create a new Downloader and start downloading mods
     #  @param idmap Dict of project ids mapped to fileids idmap[projid] = fileid
     #  @param urls List of urls for mods
-    def __init__(self, idmap: Dict[int, int], urls: List[str]):
+    def __init__(self, idmap: Dict[int, int], urls: List[str], destfolder: str):
         self.__idmap = idmap
         self.__urls = urls
+        self.__destfoler = destfolder
         self.__curr_idx = 0
         self.__attempts = 0
         self.__web = QWebEngineView()
@@ -48,13 +51,39 @@ class Downloader:
     def __source_read(self, html: str):
         # Connect download request signal
         self.__web.page().profile().downloadRequested.connect(self.__download_handler)
-        # TODO: Parse page and construct download url
-        # TODO: Navigate to download url
+        
+        # Parse webpage to get project ID
+        fileid = -1
+        try:
+            soup = BeautifulSoup(html, "lxml")
+            label_tag = soup.find("span", text="Project ID")
+            id_tag = label_tag.find_next_sibling("span")
+            projid = int(id_tag.text)
+            fileid = self.__idmap[projid]
+        except:
+            print("Failed to obtain Project ID for {0}".format(self.__web.url().toString()))
+            # TODO: Emit error signal
+            return
+        
+        # Construct and navigate to download url
+        # This url will start a file download after a number of seconds
+        # Thus, don't need a load finished slot, but a download requested slot
+        dlurl = self.__web.url().toString()
+        if dlurl.endswith("/"):
+            dlurl = dlurl[:-1]
+        dlurl = "{0}/{1}".format(dlurl, fileid)
+        self.__web.load(QUrl(dlurl))
 
     def __download_handler(self, download: QWebEngineDownloadRequest):
-        # TODO: Disconnect webview download signal
-        # TODO: Set download path and start download (connect state change sig)
-        pass
+        # Disconnect webview download signal
+        self.__web.page().profile().downloadRequested.disconnect(self.__download_handler)
+        
+        # Connect download state changed signal
+        download.stateChanged.connect(self.__download_state_changed)
+
+        # Set download folder and start download
+        download.setDownloadDirectory(self.__destfoler)
+        download.accept()
 
     def __download_state_changed(self, state: QWebEngineDownloadRequest.DownloadState):
         if(state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted):
