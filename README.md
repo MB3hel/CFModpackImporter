@@ -41,7 +41,7 @@ python3 -m venv env
 ### Install Required Libraries
 
 ```sh
-python -m pip install -r requirements.txt
+python -m pip install -U -r requirements.txt
 ```
 
 ### Compiling UI and Resource Files
