@@ -38,7 +38,7 @@ import threading
 import time
 import traceback
 import platform
-from typing import Optional, Callable, List, Dict
+from typing import Optional, Callable, List, Dict, Tuple
 import zipfile
 from PySide6.QtCore import QDir, Signal, QRunnable, QObject, QThreadPool, Qt, QFile, QThread
 from PySide6.QtWidgets import QMainWindow, QWidget, QFileDialog, QMessageBox, QProgressDialog, QLineEdit
@@ -203,7 +203,7 @@ class ImporterWindow(QMainWindow):
         if len(self.downloaders) != parallel:
             self.downloaders = []
             for i in range(parallel):
-                self.downloaders.append(Downloader(self, i+1))
+                self.downloaders.append(Downloader(self))
 
         task = Task(self, self.do_generate, filename, parallel)
         task.task_complete.connect(self.generate_done)
@@ -233,19 +233,6 @@ class ImporterWindow(QMainWindow):
         dialog.setStandardButtons(QMessageBox.Ok)
         dialog.exec()
         self.pdialog.hide()
-
-    def split_list(self, l: List, n: int) -> List[List]:
-        # Split l into n "equally" sized sublists
-        sublists: List[List] = []
-        for i in range(n):
-            sublists.append([])
-        l_pos = 0
-        curr_subl = 0
-        while l_pos < len(l):
-            sublists[curr_subl].append(l[l_pos])
-            l_pos += 1
-            curr_subl = (curr_subl + 1) % n
-        return sublists
 
     def do_generate(self, filename: str, parallel: int):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -308,12 +295,19 @@ class ImporterWindow(QMainWindow):
             if not os.path.exists(modsdir):
                 os.mkdir(modsdir)
 
-            # TODO: Instead of splitting url list, just have each downloader remove an item from the shared list when a new one is needed
-            # TODO: This is more efficient as it ensures no downloaders are ever sitting idle if one gets delayed
-            # Start all downloaders on a subset of urls
-            suburls = self.split_list(urls, parallel)
+            # Start all downloaders
+            mod_id = [0]
+            url_lock = threading.Lock()
+            def url_getter() -> Tuple[int, str]:
+                with url_lock:
+                    if len(urls) == 0:
+                        return -1, ""
+                    ret = urls[0]
+                    del urls[0]
+                    mod_id[0] += 1
+                    return mod_id[0], ret
             for i in range(parallel):
-                self.downloaders[i].start(idmap, suburls[i], modsdir, self.ui.cbx_show_webview.isChecked())
+                self.downloaders[i].start(idmap, url_getter, modsdir, self.ui.cbx_show_webview.isChecked())
 
             # Wait for all downloaders to finish. If any have error, stop all
             done = False
@@ -332,6 +326,9 @@ class ImporterWindow(QMainWindow):
                 for i in range(parallel):
                     self.downloaders[i].stop()
                 raise Exception("Failed to download one or more mods.")
+
+            print("DONE!!!")
+            time.sleep(30000)
 
             # Zip contents of overrides folder
             self.update_progress.emit("Zipping generated files...")

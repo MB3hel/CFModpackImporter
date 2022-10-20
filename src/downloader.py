@@ -4,7 +4,7 @@ from PySide6.QtGui import QCloseEvent
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
 from enum import Enum, auto
-from typing import List, Dict
+from typing import Callable, List, Dict, Tuple
 from bs4 import BeautifulSoup
 import time
 
@@ -21,20 +21,21 @@ class Downloader(QObject):
     __error_sig = Signal()
     __next_start = Signal()
 
-    def __init__(self, parent, id: int):
+    def __init__(self, parent):
         super().__init__(parent)
 
         # Information provided in start() function
         self.__idmap = {}
-        self.__urls = []
+        self.__url_getter = None
+        self.__curr_url = ""
         self.__destfoler = ""
-        self.__id = id
+        self.__id = -1
 
         # Status info
-        self.__curr_idx = 0
         self.__attempts = 0
         self.__done = False
         self.__error = False
+        self.__curr_dl = None
 
         # Webview
         self.__web = MyWebEngineView()
@@ -45,6 +46,18 @@ class Downloader(QObject):
         self.__delayed_next = QTimer()
         self.__delayed_next.setSingleShot(True)
         self.__delayed_next.timeout.connect(self.__start_next)
+
+        # Timeout for getting to the download starting
+        # Used to detect when pages are not loading and need a reload to work (CurseForge / Cloudflare issue)
+        self.__get_to_dl_timer = QTimer()
+        self.__get_to_dl_timer.setSingleShot(True)
+        self.__get_to_dl_timer.timeout.connect(self.__stop_and_reload)
+
+        # Download stall detection
+        # If not bytes received for a certain time, assume the download has failed and needs to be retried
+        self.__dl_stall_timer = QTimer()
+        self.__dl_stall_timer.setSingleShot(True)
+        self.__dl_stall_timer.timeout.connect(self.__cancel_download)
 
         # Other signals
         self.__error_sig.connect(self.__on_error)
@@ -58,15 +71,17 @@ class Downloader(QObject):
     def error(self) -> bool:
         return self.__error
 
-    def start(self, idmap: Dict[int, int], urls: List[str], destfolder: str, show_webview: bool):
+    def start(self, idmap: Dict[int, int], url_getter: Callable[[], Tuple[int, str]], destfolder: str, show_webview: bool):
         self.__idmap = idmap
-        self.__urls = urls
         self.__destfoler = destfolder
+        self.__url_getter = url_getter
+        self.__id, self.__curr_url = self.__url_getter()
         self.__done = False
         self.__error = False
-        self.__curr_idx = 0
         self.__attempts = 0
-        self.__show_webview = show_webview
+
+        if show_webview:
+            self.__web.show()
 
         # This function may not be called from main thread
         self.__delayed_next.setInterval(1)
@@ -76,20 +91,40 @@ class Downloader(QObject):
         # This function may not be called from main thread
         self.__error_sig.emit()
 
+    def __stop_and_reload(self):
+        # Disconnect any signals that may be connected
+        try:
+            self.__web.loadProgress.disconnect(self.__parse_page_progress)
+        except:
+            pass
+        try:
+            self.__web.loadProgress.disconnect(self.__download_page_progress)
+        except:
+            pass
+        try:
+            self.__web.loadProgress.disconnect(self.__download_page_progress)
+        except:
+            pass
+        
+        print("Downloader {0}: Timed out getting to download.".format(self.__id))
+
+        # Stop loading the page
+        self.__web.stop()
+
+        # Retry the same mod (after a delay to ensure the page should actually load this time)
+        self.__delayed_next.setInterval(2000)
+        self.__delayed_next.start()
+
     def __start_next(self):
         if self.__done:
             return
 
-        if(self.__curr_idx == 0 and self.__show_webview):
-            # Show view on first download started
-            self.__web.show()
-
-        if(self.__attempts > 3):
+        if(self.__attempts > 5):
             # Too many attempts = error
             self.__on_error()
             return
         
-        if(self.__curr_idx == len(self.__urls)):
+        if(self.__curr_url == "" or self.__curr_url is None):
             # All urls handled = modpack downloaded fully
             self.__on_done()
             return
@@ -97,11 +132,12 @@ class Downloader(QObject):
         # Show what is being downloaded in the log
         if self.__attempts != 0:
             print("(Retry {}) ".format(self.__attempts), end="")
-        print("Downloader {0}: Mod {1} of {2}...".format(self.__id, self.__curr_idx+1, len(self.__urls)))
+        print("Mod {0}: Starting download...".format(self.__id))
                 
         # Load next url to parse mod id
+        self.__get_to_dl_timer.setInterval(15000)
         self.__web.stop()
-        url = QUrl(self.__urls[self.__curr_idx])
+        url = QUrl(self.__curr_url)
         self.__attempts += 1
         self.__web.loadProgress.connect(self.__parse_page_progress)
         self.__web.load(url)
@@ -137,7 +173,7 @@ class Downloader(QObject):
         
         if html.find("Project ID") == -1:
             # Parse failed. Retry same mod.
-            print("Downloader {0}: Parse failed.".format(self.__id))
+            print("Mod {0}: Parse failed.".format(self.__id))
             self.__delayed_next.setInterval(2000)
             self.__delayed_next.start()
             return
@@ -152,7 +188,7 @@ class Downloader(QObject):
             fileid = self.__idmap[projid]
         except:
             # Parse failed. Retry same mod.
-            print("Downloader {0}: Parse failed.".format(self.__id))
+            print("Mod {0}: Parse failed.".format(self.__id))
             self.__delayed_next.setInterval(2000)
             self.__delayed_next.start()
             self.__on_error()
@@ -188,30 +224,58 @@ class Downloader(QObject):
     def __download_handler(self, download: QWebEngineDownloadRequest):
         if self.__done:
             return
-        
+
+        self.__curr_dl = download
+
+        # Got to the download phase. Don't use this timeout once download started.
+        # This is a timeout for getting to the download stage
+        self.__get_to_dl_timer.stop()
+
         # Won't need to accept more downloads
         self.__web.page().profile().downloadRequested.disconnect(self.__download_handler)
         
         # Connect download state changed signal (used to detect done and error)
         download.stateChanged.connect(self.__download_state_changed)
+        download.receivedBytesChanged.connect(self.__download_received_bytes)
+
+        # Start stall timer
+        self.__dl_stall_timer.setInterval(10000)
+        self.__dl_stall_timer.start()
 
         # Set download folder and start download
         download.setDownloadDirectory(self.__destfoler)
         download.accept()
+
+    def __download_received_bytes(self):
+        # Reset timeout because download is not stalled
+        self.__dl_stall_timer.stop()
+        self.__dl_stall_timer.setInterval(10000)
+        self.__dl_stall_timer.start()
 
     def __download_state_changed(self, state: QWebEngineDownloadRequest.DownloadState):
         if self.__done:
             return
         
         if(state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted):
+            self.__dl_stall_timer.stop()
+
             # Download done. Start the next one.
-            self.__curr_idx += 1
+            print("Mod {0}: Download successful.".format(self.__id))
+            self.__id, self.__curr_url = self.__url_getter()
             self.__attempts = 0
             self.__delayed_next.setInterval(2000)
             self.__delayed_next.start()
-        elif(state == QWebEngineDownloadRequest.DownloadState.DownloadCancelled or \
-                state == QWebEngineDownloadRequest.DownloadState.DownloadInterrupted):
+        elif(state == QWebEngineDownloadRequest.DownloadState.DownloadInterrupted):
+            self.__dl_stall_timer.stop()
+            
             # Download failed. Retry same mod.
-            print("Downloader {0}: Download failed.".format(self.__id))
+            print("Mod {0}: Download failed.".format(self.__id))
             self.__delayed_next.setInterval(2000)
             self.__delayed_next.start()
+    
+    def __cancel_download(self):
+        # Download failed. Retry same mod.
+        print("Mod {0}: Download has stalled.")
+        self.__curr_dl.cancel()
+        self.__delayed_next.setInterval(2000)
+        self.__delayed_next.start()
