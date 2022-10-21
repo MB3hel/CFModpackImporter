@@ -48,7 +48,7 @@ from instructionsdialog import InstructionsDialog
 from logwindow import LogWindow
 from ui_importer import Ui_Importer
 from aboutdialog import AboutDialog
-import subprocess
+import re
 from bs4 import BeautifulSoup
 
 
@@ -154,6 +154,7 @@ class ImporterWindow(QMainWindow):
                 self.ui.txt_mc_version.setText(self.manifest_json["minecraft"]["version"])
                 self.ui.txt_modloader.setText(self.manifest_json["minecraft"]["modLoaders"][0]["id"])
                 self.ui.txt_modpack_name.setText(self.manifest_json["name"])
+                self.ui.txt_modpack_ver.setText(self.manifest_json["version"])
                 self.ui.txt_nummods.setText("{}".format(len(self.manifest_json["files"])))
                 self.ui.btn_generate.setEnabled(True)
         except Exception as e:
@@ -196,7 +197,11 @@ class ImporterWindow(QMainWindow):
         self.pdialog.setLabelText(label)
 
     def generate(self):
-        filename = QFileDialog.getSaveFileName(self, "Generated File Name", "modpack_add_to_instance.zip", ".zip")[0]
+        modpack_name = re.sub(r'[^\w]', '', self.ui.txt_modpack_name.text())
+        modpack_ver = self.ui.txt_modpack_ver.text()
+        suggested_name = "{}_{}_downloaded.zip".format(modpack_name, modpack_ver)
+
+        filename = QFileDialog.getSaveFileName(self, "Generated File Name", suggested_name, ".zip")[0]
         if filename == "":
             return
 

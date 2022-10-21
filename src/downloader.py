@@ -216,7 +216,9 @@ class Downloader(QObject):
             dlurl = dlurl[:-1]
         dlurl = "{0}/download/{1}".format(dlurl, fileid)
 
-        # Navigate to download url (without file suffix)
+        # Navigate to download url (this is the page with the countdown)
+        # Adding /file start download immediately, but must navigate to page without "/file"
+        # suffix first.
         self.__web.loadProgress.connect(self.__download_page_progress)
         self.__web.load(dlurl)
 

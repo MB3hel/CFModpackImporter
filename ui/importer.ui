@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>659</width>
-    <height>423</height>
+    <height>346</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -19,20 +19,6 @@
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
-    <item row="12" column="0">
-     <widget class="QLabel" name="label_2">
-      <property name="text">
-       <string>Modloader</string>
-      </property>
-     </widget>
-    </item>
-    <item row="13" column="0">
-     <widget class="QLabel" name="label_5">
-      <property name="text">
-       <string>Number Mods</string>
-      </property>
-     </widget>
-    </item>
     <item row="5" column="0" colspan="4">
      <widget class="QWidget" name="widget" native="true">
       <layout class="QHBoxLayout" name="horizontalLayout">
@@ -74,7 +60,7 @@
           <bool>true</bool>
          </property>
          <property name="text">
-          <string>Show WebView Window</string>
+          <string>Show WebView Windows</string>
          </property>
          <property name="checked">
           <bool>false</bool>
@@ -84,13 +70,6 @@
       </layout>
      </widget>
     </item>
-    <item row="13" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_nummods">
-      <property name="readOnly">
-       <bool>true</bool>
-      </property>
-     </widget>
-    </item>
     <item row="2" column="0" colspan="3">
      <widget class="QLineEdit" name="txt_modpack_zip">
       <property name="readOnly">
@@ -98,10 +77,55 @@
       </property>
      </widget>
     </item>
-    <item row="10" column="0">
-     <widget class="QLabel" name="label_6">
+    <item row="14" column="0">
+     <widget class="QLabel" name="label_5">
       <property name="text">
-       <string>Minecraft Version</string>
+       <string>Number Mods</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="0">
+     <widget class="QLabel" name="label_3">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>Modpack Name</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="3">
+     <widget class="QPushButton" name="btn_browse_modpack">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+      <property name="text">
+       <string>Browse</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0" colspan="3">
+     <widget class="QLabel" name="label_7">
+      <property name="font">
+       <font>
+        <bold>true</bold>
+       </font>
+      </property>
+      <property name="text">
+       <string>Modpack Information</string>
+      </property>
+     </widget>
+    </item>
+    <item row="13" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_modloader">
+      <property name="readOnly">
+       <bool>true</bool>
       </property>
      </widget>
     </item>
@@ -130,35 +154,24 @@
       </property>
      </widget>
     </item>
-    <item row="15" column="0" colspan="4">
-     <widget class="QLabel" name="label_9">
-      <property name="font">
-       <font>
-        <italic>true</italic>
-        <bold>true</bold>
-       </font>
-      </property>
+    <item row="13" column="0">
+     <widget class="QLabel" name="label_2">
       <property name="text">
-       <string>WARNING: Browser windows may open and change rapidly causing significant flashing. Those sensative to such things may wish to avoid this tool.</string>
+       <string>Modloader</string>
       </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
-      <property name="wordWrap">
+     </widget>
+    </item>
+    <item row="14" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_nummods">
+      <property name="readOnly">
        <bool>true</bool>
       </property>
      </widget>
     </item>
-    <item row="9" column="0">
-     <widget class="QLabel" name="label_3">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
+    <item row="11" column="0">
+     <widget class="QLabel" name="label_6">
       <property name="text">
-       <string>Modpack Name</string>
+       <string>Minecraft Version</string>
       </property>
      </widget>
     </item>
@@ -172,15 +185,21 @@
       </property>
      </widget>
     </item>
-    <item row="10" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_mc_version">
-      <property name="readOnly">
-       <bool>true</bool>
+    <item row="15" column="1" colspan="2">
+     <spacer name="verticalSpacer">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
       </property>
-     </widget>
+      <property name="sizeHint" stdset="0">
+       <size>
+        <width>20</width>
+        <height>40</height>
+       </size>
+      </property>
+     </spacer>
     </item>
-    <item row="12" column="1" colspan="3">
-     <widget class="QLineEdit" name="txt_modloader">
+    <item row="11" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_mc_version">
       <property name="readOnly">
        <bool>true</bool>
       </property>
@@ -207,43 +226,19 @@
       </layout>
      </widget>
     </item>
-    <item row="2" column="3">
-     <widget class="QPushButton" name="btn_browse_modpack">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
+    <item row="10" column="0">
+     <widget class="QLabel" name="label_4">
       <property name="text">
-       <string>Browse</string>
+       <string>Modpack Version</string>
       </property>
      </widget>
     </item>
-    <item row="8" column="0" colspan="3">
-     <widget class="QLabel" name="label_7">
-      <property name="font">
-       <font>
-        <bold>true</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>Modpack Information</string>
+    <item row="10" column="1" colspan="3">
+     <widget class="QLineEdit" name="txt_modpack_ver">
+      <property name="readOnly">
+       <bool>true</bool>
       </property>
      </widget>
-    </item>
-    <item row="14" column="1" colspan="2">
-     <spacer name="verticalSpacer">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
-      </property>
-      <property name="sizeHint" stdset="0">
-       <size>
-        <width>20</width>
-        <height>40</height>
-       </size>
-      </property>
-     </spacer>
     </item>
    </layout>
   </widget>
