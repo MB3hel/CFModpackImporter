@@ -150,16 +150,21 @@ class Downloader(QObject):
         self.__web.load(url)
 
     def __on_error(self):
+        if self.__done:
+            return
         self.__error = True
         self.__done = True
         self.__web.stop()
-        self.__web.close()
+        self.__web.hide()
         self.downloader_error.emit(self)
     
     def __on_done(self):
-        self.__web.close()
+        if self.__done:
+            return
         self.__error = False
         self.__done = True
+        self.__web.stop()
+        self.__web.hide()
         self.downloader_done.emit(self)
 
     # TODO: Handle errors loading pages
