@@ -297,9 +297,6 @@ class ImporterWindow(QMainWindow):
             if not os.path.exists(modsdir):
                 os.mkdir(modsdir)
 
-            # TODO: Remove this. Debug only!
-            urls = urls[0:5]
-
             # Start all downloaders
             mod_id = [0]
             url_lock = threading.Lock()
@@ -339,8 +336,6 @@ class ImporterWindow(QMainWindow):
         return filename
 
     # Done and error handlers for downloaders
-    done_downloaders = [0]
-    error_downloader = [False]
     def dl_done_handler(self, downloader):
         print("Downloader {0} done.".format(self.downloaders.index(downloader)))
         self.dl_done += 1

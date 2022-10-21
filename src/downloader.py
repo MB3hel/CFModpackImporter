@@ -2,7 +2,7 @@
 from PySide6.QtCore import QObject, Signal, QUrl, QTimer
 from PySide6.QtGui import QCloseEvent
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWebEngineCore import QWebEngineDownloadRequest
+from PySide6.QtWebEngineCore import QWebEngineDownloadRequest, QWebEnginePage, QWebEngineProfile
 from enum import Enum, auto
 from typing import Callable, List, Dict, Tuple
 from bs4 import BeautifulSoup
@@ -35,7 +35,7 @@ class Downloader(QObject):
         self.__idmap = {}
         self.__url_getter = None
         self.__curr_url = ""
-        self.__destfoler = ""
+        self.__destfolder = ""
         self.__id = -1
 
         # Status info
@@ -45,7 +45,9 @@ class Downloader(QObject):
         self.__curr_dl = None
 
         # Webview
+        # Give each web view its own profile to avoid issues with parallel downloads
         self.__web = MyWebEngineView()
+        self.__web.setPage(QWebEnginePage(QWebEngineProfile("", parent), parent))
         self.__web.resize(640, 480)
         self.__web.closed.connect(self.__on_error)
 
@@ -80,7 +82,7 @@ class Downloader(QObject):
 
     def start(self, idmap: Dict[int, int], url_getter: Callable[[], Tuple[int, str]], destfolder: str, show_webview: bool):
         self.__idmap = idmap
-        self.__destfoler = destfolder
+        self.__destfolder = destfolder
         self.__url_getter = url_getter
         self.__id, self.__curr_url = self.__url_getter()
         self.__done = False
@@ -257,7 +259,7 @@ class Downloader(QObject):
         self.__dl_stall_timer.start()
 
         # Set download folder and start download
-        download.setDownloadDirectory(self.__destfoler)
+        download.setDownloadDirectory(self.__destfolder)
         download.accept()
 
     def __download_received_bytes(self):
@@ -275,14 +277,6 @@ class Downloader(QObject):
             self.__dl_stall_timer.stop()
             self.__curr_dl.deleteLater()
             self.__curr_dl = None
-
-            # Download supposedly successful, but for some reason, the 
-            # file doesn't always exist. Thus, sometimes the download "fails"
-            if not os.path.exists(os.path.join(self.__destfoler, fn)):
-                # Download failed. Retry same mod.
-                print("Mod {0}: Download failed.".format(self.__id))
-                self.__delayed_next.setInterval(2000)
-                self.__delayed_next.start()
 
             # Download done. Start the next one.
             print("Mod {0}: Download successful.".format(self.__id))
