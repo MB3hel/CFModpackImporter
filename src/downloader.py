@@ -7,6 +7,7 @@ from enum import Enum, auto
 from typing import Callable, List, Dict, Tuple
 from bs4 import BeautifulSoup
 import time
+import os
 
 # TODO: Add page load timeout with increased delay before retry
 
@@ -18,6 +19,12 @@ class MyWebEngineView(QWebEngineView):
 
 
 class Downloader(QObject):
+
+    # External use
+    downloader_error = Signal(QObject)
+    downloader_done = Signal(QObject)
+    
+    # Internal use
     __error_sig = Signal()
     __next_start = Signal()
 
@@ -147,11 +154,13 @@ class Downloader(QObject):
         self.__done = True
         self.__web.stop()
         self.__web.close()
+        self.downloader_error.emit(self)
     
     def __on_done(self):
         self.__web.close()
         self.__error = False
         self.__done = True
+        self.downloader_done.emit(self)
 
     # TODO: Handle errors loading pages
 
@@ -257,7 +266,18 @@ class Downloader(QObject):
             return
         
         if(state == QWebEngineDownloadRequest.DownloadState.DownloadCompleted):
+            fn = self.__curr_dl.downloadFileName()
             self.__dl_stall_timer.stop()
+            self.__curr_dl.deleteLater()
+            self.__curr_dl = None
+
+            # Download supposedly successful, but for some reason, the 
+            # file doesn't always exist. Thus, sometimes the download "fails"
+            if not os.path.exists(os.path.join(self.__destfoler, fn)):
+                # Download failed. Retry same mod.
+                print("Mod {0}: Download failed.".format(self.__id))
+                self.__delayed_next.setInterval(2000)
+                self.__delayed_next.start()
 
             # Download done. Start the next one.
             print("Mod {0}: Download successful.".format(self.__id))
@@ -267,7 +287,9 @@ class Downloader(QObject):
             self.__delayed_next.start()
         elif(state == QWebEngineDownloadRequest.DownloadState.DownloadInterrupted):
             self.__dl_stall_timer.stop()
-            
+            self.__curr_dl.deleteLater()
+            self.__curr_dl = None
+
             # Download failed. Retry same mod.
             print("Mod {0}: Download failed.".format(self.__id))
             self.__delayed_next.setInterval(2000)
@@ -277,5 +299,7 @@ class Downloader(QObject):
         # Download failed. Retry same mod.
         print("Mod {0}: Download has stalled.")
         self.__curr_dl.cancel()
+        self.__curr_dl.deleteLater()
+        self.__curr_dl = None
         self.__delayed_next.setInterval(2000)
         self.__delayed_next.start()

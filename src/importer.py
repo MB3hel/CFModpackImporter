@@ -104,6 +104,8 @@ class ImporterWindow(QMainWindow):
 
         # Holds currently used download instances
         self.downloaders: List[Downloader] = []
+        self.dl_error = False
+        self.dl_done = 0
 
         # Only allow integers
         self.ui.txt_parallel_down.setValidator(QIntValidator(1, 999))
@@ -295,6 +297,9 @@ class ImporterWindow(QMainWindow):
             if not os.path.exists(modsdir):
                 os.mkdir(modsdir)
 
+            # TODO: Remove this. Debug only!
+            urls = urls[0:5]
+
             # Start all downloaders
             mod_id = [0]
             url_lock = threading.Lock()
@@ -306,29 +311,20 @@ class ImporterWindow(QMainWindow):
                     del urls[0]
                     mod_id[0] += 1
                     return mod_id[0], ret
+            self.dl_error = False
+            self.dl_done = 0
             for i in range(parallel):
+                self.downloaders[i].downloader_done.connect(self.dl_done_handler)
+                self.downloaders[i].downloader_error.connect(self.dl_error_handler)
                 self.downloaders[i].start(idmap, url_getter, modsdir, self.ui.cbx_show_webview.isChecked())
 
-            # Wait for all downloaders to finish. If any have error, stop all
-            done = False
-            error = False
-            while not done:
-                done = True
-                for i in range(parallel):
-                    if not self.downloaders[i].done:
-                        done = False
-                    elif self.downloaders[i].error:
-                        error = True
-                        done = True
-                        break
-                time.sleep(1)
-            if error:
-                for i in range(parallel):
-                    self.downloaders[i].stop()
-                raise Exception("Failed to download one or more mods.")
-
-            print("DONE!!!")
-            time.sleep(30000)
+            # Wait for all downloaders to finish. Thread woken on error or all downloaders done.
+            while True:
+                if self.dl_done == len(self.downloaders):
+                    break
+                if self.dl_error:
+                    raise Exception("Failed to download one or more mods.")
+                QThread.currentThread().sleep(1)
 
             # Zip contents of overrides folder
             self.update_progress.emit("Zipping generated files...")
@@ -341,3 +337,18 @@ class ImporterWindow(QMainWindow):
                 traceback.print_exc()
                 raise e
         return filename
+
+    # Done and error handlers for downloaders
+    done_downloaders = [0]
+    error_downloader = [False]
+    def dl_done_handler(self, downloader):
+        print("Downloader {0} done.".format(self.downloaders.index(downloader)))
+        self.dl_done += 1
+
+    def dl_error_handler(self, downloader):
+        print("Downloader {0} error.".format(self.downloaders.index(downloader)))
+        for i in range(len(self.downloaders)):
+            self.downloaders[i].downloader_done.disconnect(self.dl_done_handler)
+            self.downloaders[i].downloader_error.disconnect(self.dl_error_handler)
+            self.downloaders[i].stop()
+        self.dl_error = True
