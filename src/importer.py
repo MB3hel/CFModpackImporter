@@ -332,9 +332,8 @@ class ImporterWindow(QMainWindow):
             self.update_progress.emit("Zipping generated files...")
             try:
                 overrides_dir = os.path.join(tempdir, "overrides")
-                archive = shutil.make_archive(os.path.basename(filename)[:-4], format="zip", 
+                shutil.make_archive(filename[:-4], format="zip", 
                         root_dir=overrides_dir, base_dir=".")
-                shutil.move(archive, filename)
             except Exception as e:
                 traceback.print_exc()
                 raise e
