@@ -148,7 +148,7 @@ class Downloader(QObject):
         except:
             pass
         
-        print("Downloader {0}: Timed out getting to download.".format(self.__id))
+        print("Mod {0}: Timed out getting to download.".format(self.__id))
 
         # Stop loading the page
         self.__web.stop()
@@ -174,10 +174,13 @@ class Downloader(QObject):
         # Show what is being downloaded in the log
         if self.__attempts != 0:
             print("(Retry {}) ".format(self.__attempts), end="")
+        else:
+            print("Mod {0}: ProjectID = {1}, FileID = {2}".format(self.__id, self.__projid, self.__idmap[self.__projid]))
         print("Mod {0}: Starting download...".format(self.__id))
                 
         # Load next url to parse mod id
-        self.__get_to_dl_timer.setInterval(15000)
+        self.__get_to_dl_timer.setInterval(10000)
+        self.__get_to_dl_timer.start()
         self.__web.stop()
         url = QUrl(self.__curr_url)
         self.__attempts += 1
