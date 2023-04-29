@@ -67,6 +67,7 @@ class Downloader(QObject):
         self.__curr_url = ""
         self.__destfolder = ""
         self.__id = -1
+        self.__projid = -1
 
         # Status info
         self.__attempts = 0
@@ -115,7 +116,7 @@ class Downloader(QObject):
         self.__idmap = idmap
         self.__destfolder = destfolder
         self.__url_getter = url_getter
-        self.__id, self.__curr_url = self.__url_getter()
+        self.__id, self.__curr_url, self.__projid = self.__url_getter()
         self.__done = False
         self.__error = False
         self.__attempts = 0
@@ -135,7 +136,7 @@ class Downloader(QObject):
     def __stop_and_reload(self):
         # Disconnect any signals that may be connected
         try:
-            self.__web.loadProgress.disconnect(self.__parse_page_progress)
+            self.__web.loadProgress.disconnect(self.__project_page_progress)
         except:
             pass
         try:
@@ -180,7 +181,7 @@ class Downloader(QObject):
         self.__web.stop()
         url = QUrl(self.__curr_url)
         self.__attempts += 1
-        self.__web.loadProgress.connect(self.__parse_page_progress)
+        self.__web.loadProgress.connect(self.__project_page_progress)
         self.__web.load(url)
 
     def __on_error(self):
@@ -203,56 +204,25 @@ class Downloader(QObject):
 
     # TODO: Handle errors loading pages
 
-    def __parse_page_progress(self, progress: int):
+    def __project_page_progress(self, progress: int):
         if self.__done:
             return
         
-        # Once loaded "enough", stop loading and read page source to parse ID
-        # No need to wait for all ads to load
-        # "enough" = 75% is based on experimental data
-        if progress > 75:
-            self.__web.loadProgress.disconnect(self.__parse_page_progress)
+        if progress == 100:
+            self.__web.loadProgress.disconnect(self.__project_page_progress)
             self.__web.stop()
-            self.__web.page().runJavaScript("document.documentElement.outerHTML", 0, self.__parse_page_source)
-    
-    def __parse_page_source(self, html: str):
-        if self.__done:
-            return
-        
-        if html.find("Project ID") == -1:
-            # Parse failed. Retry same mod.
-            print("Mod {0}: Parse failed.".format(self.__id))
-            self.__delayed_next.setInterval(2000)
-            self.__delayed_next.start()
-            return
 
-        # Parse project id and use it to get the file id
-        fileid = -1
-        try:
-            soup = BeautifulSoup(html, "lxml")
-            label_tag = soup.find("span", text="Project ID")
-            id_tag = label_tag.find_next_sibling("span")
-            projid = int(id_tag.text)
-            fileid = self.__idmap[projid]
-        except:
-            # Parse failed. Retry same mod.
-            print("Mod {0}: Parse failed.".format(self.__id))
-            self.__delayed_next.setInterval(2000)
-            self.__delayed_next.start()
-            self.__on_error()
-            return
-        
-        # Use file id to construct download url
-        dlurl = self.__web.url().toString()
-        if dlurl.endswith("/"):
-            dlurl = dlurl[:-1]
-        dlurl = "{0}/download/{1}".format(dlurl, fileid)
+            # Use file id to construct download url
+            dlurl = self.__web.url().toString()
+            if dlurl.endswith("/"):
+                dlurl = dlurl[:-1]
+            dlurl = "{0}/download/{1}".format(dlurl, self.__idmap[self.__projid])
 
-        # Navigate to download url (this is the page with the countdown)
-        # Adding /file start download immediately, but must navigate to page without "/file"
-        # suffix first.
-        self.__web.loadProgress.connect(self.__download_page_progress)
-        self.__web.load(dlurl)
+            # Navigate to download url (this is the page with the countdown)
+            # Adding /file start download immediately, but must navigate to page without "/file"
+            # suffix first.
+            self.__web.loadProgress.connect(self.__download_page_progress)
+            self.__web.load(dlurl)
 
     def __download_page_progress(self, progress: int):
         if self.__done:
@@ -314,7 +284,7 @@ class Downloader(QObject):
 
             # Download done. Start the next one.
             print("Mod {0}: Download successful.".format(self.__id))
-            self.__id, self.__curr_url = self.__url_getter()
+            self.__id, self.__curr_url, self.__projid = self.__url_getter()
             self.__attempts = 0
             self.__delayed_next.setInterval(2000)
             self.__delayed_next.start()

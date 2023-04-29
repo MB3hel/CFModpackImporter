@@ -270,6 +270,7 @@ class ImporterWindow(QMainWindow):
             # Read manifest to get Dict[projid] -> fileid
             # idmap[projid] = fileid
             idmap: Dict[int, int] = {}
+            idlist: List[int] = []       # List of project ids
             self.update_progress.emit("Parsing manifest.json...")
             try:
                 with open(os.path.join(tempdir, "manifest.json"), "r") as manifest_file:
@@ -278,21 +279,10 @@ class ImporterWindow(QMainWindow):
                     projectid = file["projectID"]
                     fileid = file["fileID"]
                     idmap[int(projectid)] = int(fileid)
+                    idlist.append(int(projectid))
             except:
                 traceback.print_exc()
                 raise Exception("Failed to parse manifest.json")
-
-            # Read modlist html to get list of urls
-            urls: List[str] = []
-            self.update_progress.emit("Parsing modlist.html...")
-            try:
-                with open(os.path.join(tempdir, "modlist.html"), "rb") as modlist_file:
-                    soup = BeautifulSoup(modlist_file.read().decode('utf-8'), "lxml")
-                    for a in soup.find_all('a'):
-                        urls.append(a.get("href"))
-            except:
-                traceback.print_exc()
-                raise Exception("Failed to parse modlist.html")
 
             # Download each file into the overrides mods directory
             self.update_progress.emit("Downloading mods...")
@@ -305,14 +295,15 @@ class ImporterWindow(QMainWindow):
             # Start all downloaders
             mod_id = [0]
             url_lock = threading.Lock()
-            def url_getter() -> Tuple[int, str]:
+            # mod# (download#), project page url, projectid
+            def url_getter() -> Tuple[int, str, int]:
                 with url_lock:
-                    if len(urls) == 0:
+                    if len(idlist) == 0:
                         return -1, ""
-                    ret = urls[0]
-                    del urls[0]
+                    ret = idlist[0]
+                    del idlist[0]
                     mod_id[0] += 1
-                    return mod_id[0], ret
+                    return mod_id[0], "https://minecraft.curseforge.com/projects/{0}".format(ret), ret
             self.dl_error = False
             self.dl_done = 0
             for i in range(parallel):
