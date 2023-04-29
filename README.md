@@ -1,8 +1,8 @@
 # CFModpackImporter
 
-This tool is used to automate downloading of CurseForge mods for a modpack without using CurseForge's API. This is acheived by automating download tasks using a hidden browser window. You must still download the modpack zipfile manually from CurseForge's website. 
+This tool is used to automate downloading of CurseForge mods for a modpack without using CurseForge's API. This is achieved by automating download tasks using a (hidden) browser window. You must still download the modpack zipfile manually from CurseForge's website. 
 
-The modpack zip contains the information needed by this tool to generate a list of mod donwload links. These links will then be used to automatically download mods. The modpack zip also includes configs, resource packs, and other things needed by the modpack. These, along with downloaded mods, are then zipped into a single file (referred to as the generated modpack zip file). 
+The modpack zip contains the information needed by this tool to generate a list of mod download links. These links will then be used to automatically download mods. The modpack zip also includes configs, resource packs, and other things needed by the modpack. These, along with downloaded mods, are then zipped into a single file (referred to as the generated modpack zip file). 
 
 The contents of this generated modpack zip are able to be added to a modded instance in the launcher of your choice to turn a modded instance into the modpack in question.
 
