@@ -121,6 +121,20 @@ class Downloader(QObject):
         self.__error = False
         self.__attempts = 0
 
+        # Make sure old signals are not still connected
+        try:
+            self.__web.loadProgress.disconnect(self.__project_page_progress)
+        except:
+            pass
+        try:
+            self.__web.titleChanged.disconnect(self.__download_page_title)
+        except:
+            pass
+        try:
+            self.__web.page().profile().downloadRequested.disconnect(self.__download_handler)
+        except:
+            pass
+
         if show_webview:
             self.__webview_show.emit()
             self.__web.show()
@@ -194,6 +208,7 @@ class Downloader(QObject):
         self.__done = True
         self.__web.stop()
         self.__web.hide()
+        self.__get_to_dl_timer.stop()
         self.downloader_error.emit(self)
     
     def __on_done(self):

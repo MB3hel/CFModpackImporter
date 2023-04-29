@@ -52,15 +52,6 @@ import re
 from bs4 import BeautifulSoup
 
 
-class MyProgressDialog(QProgressDialog):
-    def __init__(self, parent: Optional[QWidget]):
-        super().__init__(parent=parent)
-        self.setCancelButton(None)
-    
-    def closeEvent(self, event: QCloseEvent) -> None:
-        event.ignore()
-
-
 class Task(QRunnable, QObject):
     task_complete = Signal(object)
     task_exception = Signal(Exception)
@@ -98,7 +89,7 @@ class ImporterWindow(QMainWindow):
         # Setup UI
         self.ui = Ui_Importer()
         self.ui.setupUi(self)
-        self.pdialog = MyProgressDialog(self)
+        self.pdialog = QProgressDialog(self)
         self.pdialog.cancel()
         self.pdialog.hide()
 
@@ -184,6 +175,7 @@ class ImporterWindow(QMainWindow):
     
     def show_progress(self, label: str):
         self.pdialog.hide()
+        self.pdialog.reset()  # Clears cancelled state
         self.pdialog.setWindowTitle("Working")
         self.pdialog.setLabelText(label)
         self.pdialog.setWindowModality(Qt.WindowModal)
@@ -231,15 +223,19 @@ class ImporterWindow(QMainWindow):
         dialog.exec()
 
     def generate_exec(self, e):
-        traceback.print_tb(e.__traceback__)
-        dialog = QMessageBox(parent=self)
-        dialog.setWindowModality(Qt.WindowModal)
-        dialog.setIcon(QMessageBox.Warning)
-        dialog.setText("{0}: {1}".format(type(e).__name__, str(e)))
-        dialog.setWindowTitle(self.tr("Error Generating Zip"))
-        dialog.setStandardButtons(QMessageBox.Ok)
-        dialog.exec()
-        self.pdialog.hide()
+        if str(e) == "CANCELLED_BY_USER":
+            # Not really an error
+            print("Modpack download cancelled by user.")
+        else:
+            traceback.print_tb(e.__traceback__)
+            dialog = QMessageBox(parent=self)
+            dialog.setWindowModality(Qt.WindowModal)
+            dialog.setIcon(QMessageBox.Warning)
+            dialog.setText("{0}: {1}".format(type(e).__name__, str(e)))
+            dialog.setWindowTitle(self.tr("Error Generating Zip"))
+            dialog.setStandardButtons(QMessageBox.Ok)
+            dialog.exec()
+            self.pdialog.hide()
 
     def do_generate(self, filename: str, parallel: int):
         with tempfile.TemporaryDirectory() as tempdir:
@@ -316,7 +312,17 @@ class ImporterWindow(QMainWindow):
                 if self.dl_done == len(self.downloaders):
                     break
                 if self.dl_error:
+                    for i in range(len(self.downloaders)):
+                        self.downloaders[i].downloader_done.disconnect(self.dl_done_handler)
+                        self.downloaders[i].downloader_error.disconnect(self.dl_error_handler)
+                        self.downloaders[i].stop()
                     raise Exception("Failed to download one or more mods.")
+                if self.pdialog.wasCanceled():
+                    for i in range(len(self.downloaders)):
+                        self.downloaders[i].downloader_done.disconnect(self.dl_done_handler)
+                        self.downloaders[i].downloader_error.disconnect(self.dl_error_handler)
+                        self.downloaders[i].stop()
+                    raise Exception("CANCELLED_BY_USER")
                 QThread.currentThread().sleep(1)
 
             # Zip contents of overrides folder
