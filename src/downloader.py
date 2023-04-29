@@ -55,6 +55,8 @@ class Downloader(QObject):
     # Internal use
     __error_sig = Signal()
     __next_start = Signal()
+    __webview_show = Signal()
+
 
     def __init__(self, parent):
         super().__init__(parent)
@@ -99,6 +101,7 @@ class Downloader(QObject):
         # Other signals
         self.__error_sig.connect(self.__on_error)
         self.__next_start.connect(self.__delayed_next.start)
+        self.__webview_show.connect(self.__web.show)
     
     @property
     def done(self) -> bool:
@@ -118,6 +121,7 @@ class Downloader(QObject):
         self.__attempts = 0
 
         if show_webview:
+            self.__webview_show.emit()
             self.__web.show()
 
         # This function may not be called from main thread
