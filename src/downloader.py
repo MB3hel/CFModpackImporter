@@ -140,11 +140,11 @@ class Downloader(QObject):
         except:
             pass
         try:
-            self.__web.loadProgress.disconnect(self.__download_page_progress)
+            self.__web.titleChanged.disconnect(self.__download_page_title)
         except:
             pass
         try:
-            self.__web.loadProgress.disconnect(self.__download_page_progress)
+            self.__web.page().profile().downloadRequested.disconnect(self.__download_handler)
         except:
             pass
         
@@ -207,7 +207,6 @@ class Downloader(QObject):
     def __project_page_progress(self, progress: int):
         if self.__done:
             return
-        
         if progress == 100:
             self.__web.loadProgress.disconnect(self.__project_page_progress)
             self.__web.stop()
@@ -221,25 +220,21 @@ class Downloader(QObject):
             # Navigate to download url (this is the page with the countdown)
             # Adding /file start download immediately, but must navigate to page without "/file"
             # suffix first.
-            self.__web.loadProgress.connect(self.__download_page_progress)
+            self.__web.titleChanged.connect(self.__download_page_title)
             self.__web.load(dlurl)
 
-    def __download_page_progress(self, progress: int):
+    def __download_page_title(self, title: str):
         if self.__done:
             return
-        
-        # Once loaded "enough", stop loading and navigate to direct download link
-        # No need to wait for 5 seconds
-        # "enough" = 75% is based on experimental data
-        if progress > 75:
-            self.__web.loadProgress.disconnect(self.__download_page_progress)
-            self.__web.stop()
-            direct_url = self.__web.url().toString()
-            if direct_url.endswith("/"):
-                direct_url = direct_url[:-1]
-            direct_url = "{0}/file".format(direct_url)
-            self.__web.page().profile().downloadRequested.connect(self.__download_handler)
-            self.__web.load(QUrl(direct_url))
+
+        self.__web.titleChanged.disconnect(self.__download_page_title)
+        self.__web.stop()
+        direct_url = self.__web.url().toString()
+        if direct_url.endswith("/"):
+            direct_url = direct_url[:-1]
+        direct_url = "{0}/file".format(direct_url)
+        self.__web.page().profile().downloadRequested.connect(self.__download_handler)
+        self.__web.load(QUrl(direct_url))
 
     def __download_handler(self, download: QWebEngineDownloadRequest):
         if self.__done:

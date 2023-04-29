@@ -299,7 +299,7 @@ class ImporterWindow(QMainWindow):
             def url_getter() -> Tuple[int, str, int]:
                 with url_lock:
                     if len(idlist) == 0:
-                        return -1, ""
+                        return -1, "", -1
                     ret = idlist[0]
                     del idlist[0]
                     mod_id[0] += 1
